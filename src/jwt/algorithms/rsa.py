@@ -1,5 +1,4 @@
 import base64
-from typing import Dict, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -20,76 +19,36 @@ class RSAAlgorithm(Algorithm):
         "PS512": hashes.SHA512,
     }
 
-    @classmethod
-    def load_key(
-        cls, key: Union[Dict, bytes], password: bytes | None = None
-    ) -> rsa.RSAPrivateKey:
+    @staticmethod
+    def load_key(key: dict | bytes, password: bytes | None = None) -> rsa.RSAPrivateKey:
         """
-        Load RSA key from JWK or PEM.
+        Load RSA private key from JWK dict or PEM bytes.
 
         Args:
             key: Either a JWK dict or PEM-encoded private key bytes
             password: Optional password for encrypted PEM keys
 
         Returns:
-            The RSA private key
+            RSA private key object
         """
         if isinstance(key, dict):
-            # Add padding back to base64url
-            padding = 4 - (len(key["n"]) % 4)
-            if padding != 4:
-                key["n"] += "=" * padding
+            # Load from JWK
             n = int.from_bytes(base64.urlsafe_b64decode(key["n"]), "big")
-
-            padding = 4 - (len(key["e"]) % 4)
-            if padding != 4:
-                key["e"] += "=" * padding
             e = int.from_bytes(base64.urlsafe_b64decode(key["e"]), "big")
-
-            padding = 4 - (len(key["d"]) % 4)
-            if padding != 4:
-                key["d"] += "=" * padding
             d = int.from_bytes(base64.urlsafe_b64decode(key["d"]), "big")
-
-            padding = 4 - (len(key["p"]) % 4)
-            if padding != 4:
-                key["p"] += "=" * padding
-            p = int.from_bytes(base64.urlsafe_b64decode(key["p"]), "big")
-
-            padding = 4 - (len(key["q"]) % 4)
-            if padding != 4:
-                key["q"] += "=" * padding
-            q = int.from_bytes(base64.urlsafe_b64decode(key["q"]), "big")
-
-            padding = 4 - (len(key["dp"]) % 4)
-            if padding != 4:
-                key["dp"] += "=" * padding
-            dmp1 = int.from_bytes(base64.urlsafe_b64decode(key["dp"]), "big")
-
-            padding = 4 - (len(key["dq"]) % 4)
-            if padding != 4:
-                key["dq"] += "=" * padding
-            dmq1 = int.from_bytes(base64.urlsafe_b64decode(key["dq"]), "big")
-
-            padding = 4 - (len(key["qi"]) % 4)
-            if padding != 4:
-                key["qi"] += "=" * padding
-            iqmp = int.from_bytes(base64.urlsafe_b64decode(key["qi"]), "big")
-
-            private_numbers = rsa.RSAPrivateNumbers(
-                p=p,
-                q=q,
+            return rsa.RSAPrivateNumbers(
+                p=int.from_bytes(base64.urlsafe_b64decode(key["p"]), "big"),
+                q=int.from_bytes(base64.urlsafe_b64decode(key["q"]), "big"),
                 d=d,
-                dmp1=dmp1,
-                dmq1=dmq1,
-                iqmp=iqmp,
-                public_numbers=rsa.RSAPublicNumbers(e=e, n=n),
-            )
-            return private_numbers.private_key()
+                dmp1=int.from_bytes(base64.urlsafe_b64decode(key["dp"]), "big"),
+                dmq1=int.from_bytes(base64.urlsafe_b64decode(key["dq"]), "big"),
+                iqmp=int.from_bytes(base64.urlsafe_b64decode(key["qi"]), "big"),
+                public_numbers=rsa.RSAPublicNumbers(e, n),
+            ).private_key(default_backend())
         else:
+            # Load from PEM
             return serialization.load_pem_private_key(
-                key,
-                password=password,
+                key, password=password, backend=default_backend()
             )
 
     @classmethod

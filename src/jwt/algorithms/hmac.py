@@ -1,5 +1,4 @@
 import base64
-from typing import Dict, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
@@ -16,23 +15,19 @@ class HMACAlgorithm(Algorithm):
         "HS512": hashes.SHA512,
     }
 
-    @classmethod
-    def load_key(cls, key: Union[Dict, bytes], password: bytes | None = None) -> bytes:
+    @staticmethod
+    def load_key(key: dict | bytes, password: bytes | None = None) -> bytes:
         """
-        Load HMAC key from JWK or raw bytes.
+        Load HMAC key from JWK dict or raw bytes.
 
         Args:
             key: Either a JWK dict or raw key bytes
             password: Optional password for encrypted keys
 
         Returns:
-            The key bytes
+            HMAC key bytes
         """
         if isinstance(key, dict):
-            # Add padding back to base64url
-            padding = 4 - (len(key["k"]) % 4)
-            if padding != 4:
-                key["k"] += "=" * padding
             return base64.urlsafe_b64decode(key["k"])
         return key
 

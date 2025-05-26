@@ -1,5 +1,4 @@
 import base64
-from typing import Dict, Union
 
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
@@ -7,29 +6,25 @@ from .base import Algorithm
 
 
 class EdDSAAlgorithm(Algorithm):
-    """EdDSA algorithm implementation."""
+    """EdDSA algorithm implementation (Ed25519)."""
 
     SUPPORTED_ALGORITHMS = {"EdDSA"}
 
-    @classmethod
+    @staticmethod
     def load_key(
-        cls, key: Union[Dict, bytes], password: bytes | None = None
+        key: dict | bytes, password: bytes | None = None
     ) -> ed25519.Ed25519PrivateKey:
         """
-        Load EdDSA key from JWK or raw bytes.
+        Load EdDSA private key from JWK dict or raw bytes.
 
         Args:
             key: Either a JWK dict or raw private key bytes
             password: Optional password for encrypted keys
 
         Returns:
-            The EdDSA private key
+            EdDSA private key object
         """
         if isinstance(key, dict):
-            # Add padding back to base64url
-            padding = 4 - (len(key["d"]) % 4)
-            if padding != 4:
-                key["d"] += "=" * padding
             return ed25519.Ed25519PrivateKey.from_private_bytes(
                 base64.urlsafe_b64decode(key["d"])
             )

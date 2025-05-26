@@ -1,5 +1,4 @@
 import base64
-from typing import Dict, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -12,57 +11,43 @@ class ECDSAAlgorithm(Algorithm):
     """ECDSA algorithm implementation (ES256, ES384, ES512)."""
 
     SUPPORTED_ALGORITHMS = {
-        "ES256": hashes.SHA256,
-        "ES384": hashes.SHA384,
-        "ES512": hashes.SHA512,
+        "ES256": ec.SECP256R1,
+        "ES384": ec.SECP384R1,
+        "ES512": ec.SECP521R1,
     }
 
     @classmethod
     def load_key(
-        cls, key: Union[Dict, bytes], password: bytes | None = None
+        cls, key: dict | bytes, alg: str, password: bytes | None = None
     ) -> ec.EllipticCurvePrivateKey:
         """
-        Load ECDSA key from JWK or PEM.
+        Load ECDSA private key from JWK dict or PEM bytes.
 
         Args:
             key: Either a JWK dict or PEM-encoded private key bytes
+            alg: The signing algorithm (ES256, ES384, ES512)
             password: Optional password for encrypted PEM keys
 
         Returns:
-            The ECDSA private key
+            ECDSA private key object
         """
+        if alg not in cls.SUPPORTED_ALGORITHMS:
+            raise ValueError(f"Unsupported ECDSA algorithm: {alg}")
+
         if isinstance(key, dict):
-            # Add padding back to base64url
-            padding = 4 - (len(key["x"]) % 4)
-            if padding != 4:
-                key["x"] += "=" * padding
+            # Load from JWK
+            curve = cls.SUPPORTED_ALGORITHMS[alg]()
             x = int.from_bytes(base64.urlsafe_b64decode(key["x"]), "big")
-
-            padding = 4 - (len(key["y"]) % 4)
-            if padding != 4:
-                key["y"] += "=" * padding
             y = int.from_bytes(base64.urlsafe_b64decode(key["y"]), "big")
-
-            padding = 4 - (len(key["d"]) % 4)
-            if padding != 4:
-                key["d"] += "=" * padding
             d = int.from_bytes(base64.urlsafe_b64decode(key["d"]), "big")
 
-            curve = {
-                "P-256": ec.SECP256R1,
-                "P-384": ec.SECP384R1,
-                "P-521": ec.SECP521R1,
-            }[key["crv"]]()
-
-            private_numbers = ec.EllipticCurvePrivateNumbers(
-                private_value=d,
-                public_numbers=ec.EllipticCurvePublicNumbers(x=x, y=y, curve=curve),
-            )
-            return private_numbers.private_key()
+            return ec.EllipticCurvePrivateNumbers(
+                d, ec.EllipticCurvePublicNumbers(x, y, curve)
+            ).private_key(default_backend())
         else:
+            # Load from PEM
             return serialization.load_pem_private_key(
-                key,
-                password=password,
+                key, password=password, backend=default_backend()
             )
 
     @classmethod
@@ -88,7 +73,7 @@ class ECDSAAlgorithm(Algorithm):
         if alg not in cls.SUPPORTED_ALGORITHMS:
             raise ValueError(f"Unsupported ECDSA algorithm: {alg}")
 
-        privkey = cls.load_key(key, password)
+        privkey = cls.load_key(key, alg, password)
 
         # Sign and format signature
         signature = privkey.sign(signing_input, ec.ECDSA(hashes.SHA256()))
