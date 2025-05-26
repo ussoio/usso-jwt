@@ -1,3 +1,4 @@
+import base64
 from enum import Enum
 
 
@@ -24,3 +25,8 @@ class Algorithm(str, Enum):
 
     # EdDSA with SHA-2
     EdDSA = "EDDSA"  # EdDSA with SHA-512
+
+
+def b64url_decode(data: str) -> bytes:
+    padding = "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(data + padding)

@@ -1,8 +1,7 @@
-import base64
-
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
 
+from ..core import b64url_decode
 from .base import Algorithm
 
 
@@ -28,7 +27,7 @@ class HMACAlgorithm(Algorithm):
             HMAC key bytes
         """
         if isinstance(key, dict):
-            return base64.urlsafe_b64decode(key["k"])
+            return b64url_decode(key["k"])
         return key
 
     @classmethod
@@ -36,7 +35,7 @@ class HMACAlgorithm(Algorithm):
         cls,
         signing_input: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "HS256",
         password: bytes | None = None,
     ) -> bytes:
         """
@@ -67,7 +66,7 @@ class HMACAlgorithm(Algorithm):
         signing_input: bytes,
         signature: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "HS256",
         password: bytes | None = None,
     ) -> bool:
         """

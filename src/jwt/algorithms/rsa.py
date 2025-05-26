@@ -1,9 +1,8 @@
-import base64
-
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
+from ..core import b64url_decode
 from .base import Algorithm
 
 
@@ -33,16 +32,16 @@ class RSAAlgorithm(Algorithm):
         """
         if isinstance(key, dict):
             # Load from JWK
-            n = int.from_bytes(base64.urlsafe_b64decode(key["n"]), "big")
-            e = int.from_bytes(base64.urlsafe_b64decode(key["e"]), "big")
-            d = int.from_bytes(base64.urlsafe_b64decode(key["d"]), "big")
+            n = int.from_bytes(b64url_decode(key["n"]), "big")
+            e = int.from_bytes(b64url_decode(key["e"]), "big")
+            d = int.from_bytes(b64url_decode(key["d"]), "big")
             return rsa.RSAPrivateNumbers(
-                p=int.from_bytes(base64.urlsafe_b64decode(key["p"]), "big"),
-                q=int.from_bytes(base64.urlsafe_b64decode(key["q"]), "big"),
+                p=int.from_bytes(b64url_decode(key["p"]), "big"),
+                q=int.from_bytes(b64url_decode(key["q"]), "big"),
                 d=d,
-                dmp1=int.from_bytes(base64.urlsafe_b64decode(key["dp"]), "big"),
-                dmq1=int.from_bytes(base64.urlsafe_b64decode(key["dq"]), "big"),
-                iqmp=int.from_bytes(base64.urlsafe_b64decode(key["qi"]), "big"),
+                dmp1=int.from_bytes(b64url_decode(key["dp"]), "big"),
+                dmq1=int.from_bytes(b64url_decode(key["dq"]), "big"),
+                iqmp=int.from_bytes(b64url_decode(key["qi"]), "big"),
                 public_numbers=rsa.RSAPublicNumbers(e, n),
             ).private_key(default_backend())
         else:
@@ -56,7 +55,7 @@ class RSAAlgorithm(Algorithm):
         cls,
         signing_input: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "RS256",
         password: bytes | None = None,
     ) -> bytes:
         """
@@ -95,7 +94,7 @@ class RSAAlgorithm(Algorithm):
         signing_input: bytes,
         signature: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "RS256",
         password: bytes | None = None,
     ) -> bool:
         """
@@ -116,8 +115,8 @@ class RSAAlgorithm(Algorithm):
 
         if isinstance(key, dict):
             # Load from JWK
-            n = int.from_bytes(base64.urlsafe_b64decode(key["n"]), "big")
-            e = int.from_bytes(base64.urlsafe_b64decode(key["e"]), "big")
+            n = int.from_bytes(b64url_decode(key["n"]), "big")
+            e = int.from_bytes(b64url_decode(key["e"]), "big")
             pubkey = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
         else:
             # Load from PEM

@@ -1,7 +1,6 @@
-import base64
-
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
+from ..core import b64url_decode
 from .base import Algorithm
 
 
@@ -25,9 +24,7 @@ class EdDSAAlgorithm(Algorithm):
             EdDSA private key object
         """
         if isinstance(key, dict):
-            return ed25519.Ed25519PrivateKey.from_private_bytes(
-                base64.urlsafe_b64decode(key["d"])
-            )
+            return ed25519.Ed25519PrivateKey.from_private_bytes(b64url_decode(key["d"]))
         return ed25519.Ed25519PrivateKey.from_private_bytes(key)
 
     @classmethod
@@ -35,7 +32,7 @@ class EdDSAAlgorithm(Algorithm):
         cls,
         signing_input: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "EdDSA",
         password: bytes | None = None,
     ) -> bytes:
         """
@@ -62,7 +59,7 @@ class EdDSAAlgorithm(Algorithm):
         signing_input: bytes,
         signature: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "EdDSA",
         password: bytes | None = None,
     ) -> bool:
         """
@@ -82,9 +79,7 @@ class EdDSAAlgorithm(Algorithm):
             raise ValueError(f"Unsupported EdDSA algorithm: {alg}")
 
         if isinstance(key, dict):
-            pubkey = ed25519.Ed25519PublicKey.from_public_bytes(
-                base64.urlsafe_b64decode(key["x"])
-            )
+            pubkey = ed25519.Ed25519PublicKey.from_public_bytes(b64url_decode(key["x"]))
         else:
             pubkey = ed25519.Ed25519PublicKey.from_public_bytes(key)
 

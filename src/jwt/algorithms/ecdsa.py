@@ -1,9 +1,8 @@
-import base64
-
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
 
+from ..core import b64url_decode
 from .base import Algorithm
 
 
@@ -37,9 +36,9 @@ class ECDSAAlgorithm(Algorithm):
         if isinstance(key, dict):
             # Load from JWK
             curve = cls.SUPPORTED_ALGORITHMS[alg]()
-            x = int.from_bytes(base64.urlsafe_b64decode(key["x"]), "big")
-            y = int.from_bytes(base64.urlsafe_b64decode(key["y"]), "big")
-            d = int.from_bytes(base64.urlsafe_b64decode(key["d"]), "big")
+            x = int.from_bytes(b64url_decode(key["x"]), "big")
+            y = int.from_bytes(b64url_decode(key["y"]), "big")
+            d = int.from_bytes(b64url_decode(key["d"]), "big")
 
             return ec.EllipticCurvePrivateNumbers(
                 d, ec.EllipticCurvePublicNumbers(x, y, curve)
@@ -55,7 +54,7 @@ class ECDSAAlgorithm(Algorithm):
         cls,
         signing_input: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "ES256",
         password: bytes | None = None,
     ) -> bytes:
         """
@@ -87,7 +86,7 @@ class ECDSAAlgorithm(Algorithm):
         signing_input: bytes,
         signature: bytes,
         key: dict | bytes,
-        alg: str,
+        alg: str = "ES256",
         password: bytes | None = None,
     ) -> bool:
         """
@@ -109,8 +108,8 @@ class ECDSAAlgorithm(Algorithm):
         if isinstance(key, dict):
             # Load from JWK
             curve = cls.SUPPORTED_ALGORITHMS[alg]()
-            x = int.from_bytes(base64.urlsafe_b64decode(key["x"]), "big")
-            y = int.from_bytes(base64.urlsafe_b64decode(key["y"]), "big")
+            x = int.from_bytes(b64url_decode(key["x"]), "big")
+            y = int.from_bytes(b64url_decode(key["y"]), "big")
             pubkey = ec.EllipticCurvePublicNumbers(x, y, curve).public_key(
                 default_backend()
             )

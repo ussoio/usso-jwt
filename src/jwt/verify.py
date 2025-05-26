@@ -1,4 +1,3 @@
-import base64
 import json
 import time
 
@@ -14,11 +13,6 @@ from .exceptions import (
     JWTIssuedInFutureError,
     JWTNotValidYetError,
 )
-
-
-def b64url_decode(data: str) -> bytes:
-    padding = "=" * (-len(data) % 4)
-    return base64.urlsafe_b64decode(data + padding)
 
 
 def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:

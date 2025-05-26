@@ -3,7 +3,6 @@
 import pytest
 
 from src.jwt.algorithms import HMACAlgorithm
-from src.jwt.exceptions import JWTInvalidSignatureError
 
 
 def test_hmac_load_key_from_jwk(hmac_jwk: dict | bytes):
@@ -34,17 +33,16 @@ def test_hmac_sign_verify(
     assert isinstance(signature, bytes)
 
     # Verify
-    assert HMACAlgorithm.verify(signing_input, hmac_jwk, signature)
+    assert HMACAlgorithm.verify(signing_input, signature, hmac_jwk, "HS256")
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
-    with pytest.raises(JWTInvalidSignatureError):
-        HMACAlgorithm.verify(signing_input, hmac_jwk, invalid_signature)
+    assert not HMACAlgorithm.verify(signing_input, invalid_signature, hmac_jwk, "HS256")
 
 
 def test_hmac_unsupported_algorithm():
     """Test HMAC with unsupported algorithm."""
-    with pytest.raises(ValueError, match="Unsupported algorithm"):
+    with pytest.raises(ValueError, match="Unsupported HMAC algorithm: HS128"):
         HMACAlgorithm.sign(b"test", {}, "HS128")
 
 
@@ -55,4 +53,4 @@ def test_hmac_all_algorithms(hmac_jwk: dict | bytes):
     for alg in ["HS256", "HS384", "HS512"]:
         hmac_jwk["alg"] = alg
         signature = HMACAlgorithm.sign(signing_input, hmac_jwk, alg)
-        assert HMACAlgorithm.verify(signing_input, hmac_jwk, signature)
+        assert HMACAlgorithm.verify(signing_input, signature, hmac_jwk, alg)

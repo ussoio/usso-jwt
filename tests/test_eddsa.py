@@ -4,7 +4,6 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from src.jwt.algorithms import EdDSAAlgorithm
-from src.jwt.exceptions import JWTInvalidSignatureError
 
 
 def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes):
@@ -29,15 +28,16 @@ def test_eddsa_sign_verify(eddsa_jwk: dict | bytes):
     # Test EdDSA
     signature = EdDSAAlgorithm.sign(signing_input, eddsa_jwk, "EdDSA")
     assert isinstance(signature, bytes)
-    assert EdDSAAlgorithm.verify(signing_input, eddsa_jwk, signature)
+    assert EdDSAAlgorithm.verify(signing_input, signature, eddsa_jwk, "EdDSA")
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
-    with pytest.raises(JWTInvalidSignatureError):
-        EdDSAAlgorithm.verify(signing_input, eddsa_jwk, invalid_signature)
+    assert not EdDSAAlgorithm.verify(
+        signing_input, invalid_signature, eddsa_jwk, "EdDSA"
+    )
 
 
 def test_eddsa_unsupported_algorithm():
     """Test EdDSA with unsupported algorithm."""
-    with pytest.raises(ValueError, match="Unsupported algorithm"):
+    with pytest.raises(ValueError, match="Unsupported EdDSA algorithm: Ed25519"):
         EdDSAAlgorithm.sign(b"test", {}, "Ed25519")
