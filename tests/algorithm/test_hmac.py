@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.usso_jwt.algorithms import HMACAlgorithm
-
+from src.usso_jwt.algorithms import HMACAlgorithm, HMACKey
+from src.usso_jwt.core import b64url_decode
 
 def test_hmac_load_key_from_jwk(hmac_jwk: dict | bytes):
     """Test loading HMAC key from JWK."""
@@ -54,3 +54,32 @@ def test_hmac_all_algorithms(hmac_jwk: dict | bytes):
         hmac_jwk["alg"] = alg
         signature = HMACAlgorithm.sign(data=signing_input, key=hmac_jwk, alg=alg)
         assert HMACAlgorithm.verify(data=signing_input, signature=signature, key=hmac_jwk, alg=alg)
+
+
+def test_hmac_key_generate():
+    """Test HMAC key generation."""
+    key = HMACKey.generate(algorithm="HS256")
+    assert key.algorithm == "HS256"
+    assert key.type == "HMAC"
+    assert len(key.key) == 32
+
+
+def test_hmac_key_load_jwk(hmac_jwk: dict | bytes):
+    """Test HMAC key loading from JWK."""
+    key = HMACKey.load_jwk(hmac_jwk)
+    assert key.algorithm == "HS256"
+    assert key.type == "HMAC"
+    assert len(key.key) == 32
+
+
+def test_hmac_key_sign_verify(hmac_jwk: dict | bytes):
+    """Test HMAC key signing and verification."""
+    key = HMACKey.generate(algorithm="HS256")
+    signature = key.sign(data=b"test")
+    assert key.verify(data=b"test", signature=signature)
+
+
+def test_hmac_key_type(hmac_jwk: dict | bytes):
+    """Test HMAC key type."""
+    key = HMACKey.load_jwk(hmac_jwk)
+    assert key.type == "HMAC"

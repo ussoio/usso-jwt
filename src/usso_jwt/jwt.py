@@ -43,6 +43,12 @@ class JWT(BaseModel):
         return self._parts[0]
 
     @property
+    def header(self) -> dict[str, str]:
+        if self.verify():
+            return self.unverified_header
+        raise ValueError("JWT is not valid")
+
+    @property
     def algorithm(self) -> Algorithm:
         return Algorithm(self.unverified_header["alg"].upper())
 
@@ -51,13 +57,19 @@ class JWT(BaseModel):
         if self._payload_class is not None:
             return self._payload_class.model_validate(self._parts[1])
         return self._parts[1]
+    
+    @property
+    def payload(self) -> dict | T:
+        if self.verify():
+            return self.unverified_payload
+        raise ValueError("JWT is not valid")
 
     @property
-    def _signature(self) -> bytes:
+    def signature(self) -> bytes:
         return self._parts[2]
 
     @property
-    def _signing_input(self) -> bytes:
+    def signing_input(self) -> bytes:
         return self._parts[3]
 
     def verify(self) -> bool:
@@ -71,20 +83,11 @@ class JWT(BaseModel):
             raise ValueError("Key must be provided")
 
         verification = verify_signature(
-            self.algorithm, self.key, self._signing_input, self._signature
+            alg=self.algorithm,
+            key=self.key,
+            data=self.signing_input,
+            signature=self.signature,
         )
         if not verification:
             return False
-        return verify_temporal_claims(self.unverified_payload)
-
-    @property
-    def verified_payload(self) -> dict | T:
-        if self.verify():
-            return self.unverified_payload
-        raise ValueError("JWT is not valid")
-
-    @property
-    def verified_header(self) -> dict:
-        if self.verify():
-            return self.unverified_header
-        raise ValueError("JWT is not valid")
+        return verify_temporal_claims(payload=self.unverified_payload)

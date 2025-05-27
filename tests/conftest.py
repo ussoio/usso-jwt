@@ -3,6 +3,13 @@
 import time
 
 import pytest
+from src.usso_jwt.algorithms import AbstractKey, EdDSAKey
+
+@pytest.fixture
+def test_key() -> AbstractKey:
+    return EdDSAKey.generate()
+    # return RSAKey.generate(algorithm="PS256", key_size=2048)
+    # return ECDSAKey.generate(algorithm="ES256")
 
 
 @pytest.fixture
@@ -30,9 +37,9 @@ def test_expired_payload() -> dict:
 
 
 @pytest.fixture
-def test_header() -> dict:
+def test_header(test_key: AbstractKey) -> dict:
     """Create a test JWT header."""
     return {
-        "alg": "HS256",
+        "alg": test_key.algorithm,
         "typ": "JWT",
     }

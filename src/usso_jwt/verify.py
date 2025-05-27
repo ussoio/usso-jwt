@@ -69,7 +69,7 @@ def verify_signature(
     if isinstance(data, dict):
         signing_input = b64url_encode(json.dumps(data)).encode()
     elif isinstance(data, str):
-        signing_input = b64url_encode(data).encode()
+        signing_input = data.encode()
     else:
         signing_input = data
 
@@ -77,3 +77,18 @@ def verify_signature(
     if not algorithm.verify(data=signing_input, signature=signature, key=key, alg=alg):
         raise JWTInvalidSignatureError("Invalid signature")
     return True
+
+
+def verify_jwt(
+    *, token: str, jwks_url: str = None, kid: str = None, jwk: dict | None = None
+) -> bool:
+    header, payload, signature, signing_input = extract_jwt_parts(token)
+    if jwk is None:
+        jwk = fetch_jwk(jwks_url=jwks_url, kid=kid)
+
+    if not verify_signature(
+        alg=header["alg"], key=jwk, data=signing_input, signature=signature
+    ):
+        raise JWTInvalidSignatureError("Invalid signature")
+
+    return verify_temporal_claims(payload=payload)

@@ -1,27 +1,20 @@
+import httpx
 import json_advanced as json
-from src.usso_jwt import sign, verify
-from src.usso_jwt.algorithms import EdDSAKey, RSAKey, ECDSAKey
+from src.usso_jwt import sign, verify, exceptions
+from src.usso_jwt.algorithms import EdDSAKey, RSAKey, ECDSAKey, AbstractKey
 
 import pytest
 from src.usso_jwt.core import b64url_encode
 
 
 @pytest.fixture
-def test_key():
-    return EdDSAKey.generate()
-    # return RSAKey.generate(algorithm="PS256", key_size=2048)
-    # return ECDSAKey.generate(algorithm="ES256")
+def test_header(test_key: AbstractKey) -> dict:
+    return sign.create_jwt_header(alg=test_key.algorithm, kid=test_key.kid)
 
 
-@pytest.fixture
-def test_header(test_key: RSAKey) -> dict:
-    return {
-        "alg": test_key.algorithm,
-        "typ": "JWT",
-    }
-
-
-def test_sign_verify(test_valid_payload: dict, test_header: dict, test_key: RSAKey):
+def test_sign_verify(
+    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+):
     signature = sign.sign_jwt_parts(
         header=test_header,
         payload=test_valid_payload,
@@ -42,3 +35,28 @@ def test_sign_verify(test_valid_payload: dict, test_header: dict, test_key: RSAK
         data=signing_input,
     )
     assert verify.verify_temporal_claims(payload=test_valid_payload)
+
+
+def test_generate_jwt(
+    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+):
+    jwt = sign.generate_jwt(
+        header=test_header,
+        payload=test_valid_payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    assert jwt is not None
+    header, payload, signature, signing_input = verify.extract_jwt_parts(jwt)
+    assert header == test_header
+    assert payload == test_valid_payload
+    assert signature is not None
+    assert verify.verify_signature(
+        alg=test_key.algorithm,
+        key=test_key.public_der(),
+        signature=signature,
+        data=signing_input,
+    )
+    # assert verify.verify_temporal_claims(payload=payload)
+    assert verify.verify_jwt(token=jwt, jwk=test_key.jwk())
+

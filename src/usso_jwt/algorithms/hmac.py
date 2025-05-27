@@ -108,44 +108,44 @@ class HMACKey(AbstractKey):
         self.key = key
         self.algorithm = algorithm
 
+    @classmethod
     def generate(
-        self,
+        cls,
         *,
-        algorithm: str = "RS256",
+        algorithm: str = "HS256",
         key_size: int = 32,
-        public_exponent: int = 65537,
     ) -> "HMACKey":
         """Generate a new HMAC key."""
-        return HMACKey(
+        return cls(
             key=os.urandom(key_size),
             algorithm=algorithm,
         )
 
-    def load_jwk(self, key: dict) -> "HMACKey":
+    @classmethod
+    def load_jwk(cls, key: dict) -> "HMACKey":
         """Load a key from JWK dict."""
         algorithm = key.get("alg", "HS256")
-        return HMACKey(
+        return cls(
             key=b64url_decode(key["k"]),
             algorithm=algorithm,
         )
 
-    def load_pem(
-        self, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
-    ) -> "HMACKey":
+    @classmethod
+    def load_pem(cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256") -> "HMACKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
-        return HMACKey(key=key, algorithm=algorithm)
+        return cls(key=key, algorithm=algorithm)
 
-    def load_der(
-        self, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
-    ) -> "HMACKey":
+    @classmethod
+    def load_der(cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256") -> "HMACKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
-        return HMACKey(key=key, algorithm=algorithm)
+        return cls(key=key, algorithm=algorithm)
 
+    @property
     def jwk(self) -> dict:
         """Get the JWK for the key."""
-        return {
+        return {  # type: ignore
             "kty": "oct",
             "alg": self.algorithm,
             "k": b64url_encode(self.key),
