@@ -5,6 +5,7 @@ import httpx
 from cachetools import TTLCache, cached
 
 from .algorithms import get_algorithm
+from .core import b64url_decode, b64url_encode
 from .exceptions import (
     JWKNotFoundError,
     JWTExpiredError,
@@ -28,7 +29,7 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
-def fetch_jwk(kid: str, jwks_url: str) -> dict | None:
+def fetch_jwk(*, jwks_url: str, kid: str) -> dict | None:
     jwks = httpx.get(jwks_url).json()
     for key in jwks["keys"]:
         if key["kid"] == kid:
@@ -36,7 +37,7 @@ def fetch_jwk(kid: str, jwks_url: str) -> dict | None:
     raise JWKNotFoundError(f"JWK with kid '{kid}' not found")
 
 
-def verify_temporal_claims(payload: dict):
+def verify_temporal_claims(*, payload: dict):
     now = int(time.time())
     if "exp" in payload and now >= payload["exp"]:
         raise JWTExpiredError("Token expired")
@@ -44,10 +45,11 @@ def verify_temporal_claims(payload: dict):
         raise JWTNotValidYetError("Token not valid yet (nbf)")
     if "iat" in payload and now < payload["iat"] - 60:
         raise JWTIssuedInFutureError("Token issued in the future (iat)")
+    return True
 
 
 def verify_signature(
-    alg: str, key: dict, signing_input: bytes, signature: bytes
+    *, alg: str, key: dict, data: bytes | str | dict, signature: bytes
 ) -> bool:
     """
     Verify a JWT signature using the specified algorithm and key.
@@ -64,7 +66,14 @@ def verify_signature(
     Raises:
         JWTInvalidSignatureError: If the signature verification fails
     """
+    if isinstance(data, dict):
+        signing_input = b64url_encode(json.dumps(data)).encode()
+    elif isinstance(data, str):
+        signing_input = b64url_encode(data).encode()
+    else:
+        signing_input = data
+
     algorithm = get_algorithm(alg)
-    if not algorithm.verify(signing_input, key, signature):
+    if not algorithm.verify(data=signing_input, signature=signature, key=key, alg=alg):
         raise JWTInvalidSignatureError("Invalid signature")
     return True

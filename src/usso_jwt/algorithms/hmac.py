@@ -1,11 +1,13 @@
+import os
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
 
-from ..core import b64url_decode
-from .base import Algorithm
+from ..core import b64url_decode, b64url_encode
+from .base import AbstractKey, KeyAlgorithm
 
 
-class HMACAlgorithm(Algorithm):
+class HMACAlgorithm(KeyAlgorithm):
     """HMAC algorithm implementation (HS256, HS384, HS512)."""
 
     SUPPORTED_ALGORITHMS = {
@@ -33,7 +35,8 @@ class HMACAlgorithm(Algorithm):
     @classmethod
     def sign(
         cls,
-        signing_input: bytes,
+        *,
+        data: bytes,
         key: dict | bytes,
         alg: str = "HS256",
         password: bytes | None = None,
@@ -42,7 +45,7 @@ class HMACAlgorithm(Algorithm):
         Sign using HMAC algorithms.
 
         Args:
-            signing_input: The data to sign
+            data: The data to sign
             key: Either a JWK dict or raw key bytes
             alg: The signing algorithm to use (HS256, HS384, HS512)
             password: Optional password for encrypted keys
@@ -57,13 +60,14 @@ class HMACAlgorithm(Algorithm):
         h = hmac.HMAC(
             key_bytes, cls.SUPPORTED_ALGORITHMS[alg](), backend=default_backend()
         )
-        h.update(signing_input)
+        h.update(data)
         return h.finalize()
 
     @classmethod
     def verify(
         cls,
-        signing_input: bytes,
+        *,
+        data: bytes,
         signature: bytes,
         key: dict | bytes,
         alg: str = "HS256",
@@ -73,7 +77,7 @@ class HMACAlgorithm(Algorithm):
         Verify HMAC signature.
 
         Args:
-            signing_input: The data that was signed
+            data: The data that was signed
             signature: The signature to verify
             key: Either a JWK dict or raw key bytes
             alg: The signing algorithm used (HS256, HS384, HS512)
@@ -89,9 +93,78 @@ class HMACAlgorithm(Algorithm):
         h = hmac.HMAC(
             key_bytes, cls.SUPPORTED_ALGORITHMS[alg](), backend=default_backend()
         )
-        h.update(signing_input)
+        h.update(data)
         try:
             h.verify(signature)
             return True
         except Exception:
             return False
+
+
+class HMACKey(AbstractKey):
+    """HMAC key implementation."""
+
+    def __init__(self, *, key: bytes, algorithm: str = "HS256"):
+        self.key = key
+        self.algorithm = algorithm
+
+    def generate(
+        self,
+        *,
+        algorithm: str = "RS256",
+        key_size: int = 32,
+        public_exponent: int = 65537,
+    ) -> "HMACKey":
+        """Generate a new HMAC key."""
+        return HMACKey(
+            key=os.urandom(key_size),
+            algorithm=algorithm,
+        )
+
+    def load_jwk(self, key: dict) -> "HMACKey":
+        """Load a key from JWK dict."""
+        algorithm = key.get("alg", "HS256")
+        return HMACKey(
+            key=b64url_decode(key["k"]),
+            algorithm=algorithm,
+        )
+
+    def load_pem(
+        self, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+    ) -> "HMACKey":
+        """Load a key from PEM."""
+        key = super().load_pem(key, password)
+        return HMACKey(key=key, algorithm=algorithm)
+
+    def load_der(
+        self, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+    ) -> "HMACKey":
+        """Load a key from DER."""
+        key = super().load_der(key, password)
+        return HMACKey(key=key, algorithm=algorithm)
+
+    def jwk(self) -> dict:
+        """Get the JWK for the key."""
+        return {
+            "kty": "oct",
+            "alg": self.algorithm,
+            "k": b64url_encode(self.key),
+        }
+
+    @property
+    def type(self) -> str:
+        """Get the type of the key."""
+        return "HMAC"
+
+    @property
+    def key_size(self) -> int:
+        """Get the size of the key."""
+        return len(self.key)
+
+    def sign(self, data: bytes) -> bytes:
+        """Sign data using the key."""
+        return HMACAlgorithm.sign(data=data, key=self.key, alg=self.algorithm)
+
+    def verify(self, data: bytes, signature: bytes) -> bool:
+        """Verify signature using the key."""
+        return HMACAlgorithm.verify(data=data, signature=signature, key=self.key, alg=self.algorithm)

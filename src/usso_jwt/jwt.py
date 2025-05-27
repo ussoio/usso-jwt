@@ -24,10 +24,14 @@ class JWT(BaseModel):
         *,
         token: str,
         key: dict | None = None,
+        jwks_url: str | None = None,
         payload_class: type[T] | None = None,
     ):
-        super().__init__(token=token, key=key)
-        self.payload_class = payload_class
+        super().__init__(token=token, key=key, jwks_url=jwks_url)
+        self._payload_class = payload_class
+
+    def __hash__(self) -> int:
+        return hash(self.token)
 
     @property
     @cached(cache=TTLCache(maxsize=1000, ttl=300))
@@ -44,8 +48,8 @@ class JWT(BaseModel):
 
     @property
     def unverified_payload(self) -> dict | T:
-        if self.payload_class is not None:
-            return self.payload_class.model_validate(self._parts[1])
+        if self._payload_class is not None:
+            return self._payload_class.model_validate(self._parts[1])
         return self._parts[1]
 
     @property

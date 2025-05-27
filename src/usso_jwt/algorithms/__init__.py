@@ -1,13 +1,13 @@
 from typing import Type
 
-from .base import Algorithm
-from .ecdsa import ECDSAAlgorithm
-from .eddsa import EdDSAAlgorithm
-from .hmac import HMACAlgorithm
-from .rsa import RSAAlgorithm
+from .base import AbstractKey, KeyAlgorithm
+from .ecdsa import ECDSAAlgorithm, ECDSAKey
+from .eddsa import EdDSAAlgorithm, EdDSAKey
+from .hmac import HMACAlgorithm, HMACKey
+from .rsa import RSAAlgorithm, RSAKey
 
 
-def get_algorithm(alg: str) -> Type[Algorithm]:
+def get_algorithm(alg: str) -> Type[KeyAlgorithm]:
     """
     Get the appropriate algorithm manager for the given algorithm.
 
@@ -20,7 +20,7 @@ def get_algorithm(alg: str) -> Type[Algorithm]:
     Raises:
         ValueError: If the algorithm is not supported
     """
-    for algo in Algorithm.__subclasses__():
+    for algo in KeyAlgorithm.__subclasses__():
         if alg.upper() in algo.SUPPORTED_ALGORITHMS:
             return algo
 
@@ -28,7 +28,12 @@ def get_algorithm(alg: str) -> Type[Algorithm]:
 
 
 __all__ = [
-    "Algorithm",
+    "KeyAlgorithm",
+    "AbstractKey",
+    "HMACKey",
+    "RSAKey",
+    "ECDSAKey",
+    "EdDSAKey",
     "HMACAlgorithm",
     "RSAAlgorithm",
     "ECDSAAlgorithm",
