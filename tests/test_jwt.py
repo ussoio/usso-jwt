@@ -1,6 +1,7 @@
 import pytest
-from src.usso_jwt import jwt, sign, algorithms, exceptions
 from pydantic import BaseModel
+
+from src.usso_jwt import algorithms, exceptions, jwt, sign
 
 
 @pytest.fixture
@@ -66,6 +67,7 @@ def test_payload_class(
         **test_valid_payload,
     )
 
+
 def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey):
     jwt_obj = jwt.JWT(
         token=test_token[:-1] + "1",
@@ -73,6 +75,7 @@ def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey)
     )
     with pytest.raises(exceptions.JWTInvalidSignatureError):
         jwt_obj.payload
+
 
 def test_no_key(test_token: str):
     with pytest.raises(ValueError):

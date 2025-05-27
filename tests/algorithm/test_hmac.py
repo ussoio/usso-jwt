@@ -3,7 +3,7 @@
 import pytest
 
 from src.usso_jwt.algorithms import HMACAlgorithm, HMACKey
-from src.usso_jwt.core import b64url_decode
+
 
 def test_hmac_load_key_from_jwk(hmac_jwk: dict | bytes):
     """Test loading HMAC key from JWK."""
@@ -19,9 +19,7 @@ def test_hmac_load_key_from_bytes(hmac_key: bytes):
     assert key == hmac_key
 
 
-def test_hmac_sign_verify(
-    hmac_jwk: dict | bytes
-):
+def test_hmac_sign_verify(hmac_jwk: dict | bytes):
     """Test HMAC signing and verification."""
     # Prepare signing input
     header_b64 = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
@@ -33,11 +31,15 @@ def test_hmac_sign_verify(
     assert isinstance(signature, bytes)
 
     # Verify
-    assert HMACAlgorithm.verify(data=signing_input, signature=signature, key=hmac_jwk, alg="HS256")
+    assert HMACAlgorithm.verify(
+        data=signing_input, signature=signature, key=hmac_jwk, alg="HS256"
+    )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
-    assert not HMACAlgorithm.verify(data=signing_input, signature=invalid_signature, key=hmac_jwk, alg="HS256")
+    assert not HMACAlgorithm.verify(
+        data=signing_input, signature=invalid_signature, key=hmac_jwk, alg="HS256"
+    )
 
 
 def test_hmac_unsupported_algorithm():
@@ -53,7 +55,9 @@ def test_hmac_all_algorithms(hmac_jwk: dict | bytes):
     for alg in ["HS256", "HS384", "HS512"]:
         hmac_jwk["alg"] = alg
         signature = HMACAlgorithm.sign(data=signing_input, key=hmac_jwk, alg=alg)
-        assert HMACAlgorithm.verify(data=signing_input, signature=signature, key=hmac_jwk, alg=alg)
+        assert HMACAlgorithm.verify(
+            data=signing_input, signature=signature, key=hmac_jwk, alg=alg
+        )
 
 
 def test_hmac_key_generate():

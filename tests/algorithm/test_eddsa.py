@@ -33,7 +33,9 @@ def test_eddsa_sign_verify(eddsa_jwk: dict | bytes):
     # Test EdDSA
     signature = EdDSAAlgorithm.sign(data=data, key=eddsa_jwk, alg="EdDSA")
     assert isinstance(signature, bytes)
-    assert EdDSAAlgorithm.verify(data=data, signature=signature, key=eddsa_jwk, alg="EdDSA")
+    assert EdDSAAlgorithm.verify(
+        data=data, signature=signature, key=eddsa_jwk, alg="EdDSA"
+    )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])

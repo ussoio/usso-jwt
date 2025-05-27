@@ -37,7 +37,9 @@ def test_rsa_sign_verify(rsa_jwk: dict | bytes):
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
-    assert not RSAAlgorithm.verify(data=data, signature=invalid_signature, key=rsa_jwk, alg="RS256")
+    assert not RSAAlgorithm.verify(
+        data=data, signature=invalid_signature, key=rsa_jwk, alg="RS256"
+    )
 
 
 def test_rsa_unsupported_algorithm():
@@ -53,7 +55,9 @@ def test_rsa_all_algorithms(rsa_jwk: dict | bytes):
     for alg in ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512"]:
         rsa_jwk["alg"] = alg
         signature = RSAAlgorithm.sign(data=signing_input, key=rsa_jwk, alg=alg)
-        assert RSAAlgorithm.verify(data=signing_input, signature=signature, key=rsa_jwk, alg=alg)
+        assert RSAAlgorithm.verify(
+            data=signing_input, signature=signature, key=rsa_jwk, alg=alg
+        )
 
 
 def test_rsa_key_generate():

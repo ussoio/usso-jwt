@@ -161,4 +161,6 @@ class EdDSAKey(AbstractKey):
 
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
-        return EdDSAAlgorithm.verify(data=data, signature=signature, key=self.public_der(), alg=self.algorithm)
+        return EdDSAAlgorithm.verify(
+            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+        )

@@ -57,7 +57,7 @@ class JWT(BaseModel):
         if self._payload_class is not None:
             return self._payload_class.model_validate(self._parts[1])
         return self._parts[1]
-    
+
     @property
     def payload(self) -> dict | T:
         if self.verify():

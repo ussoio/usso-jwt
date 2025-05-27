@@ -3,7 +3,9 @@
 import time
 
 import pytest
+
 from src.usso_jwt.algorithms import AbstractKey, EdDSAKey
+
 
 @pytest.fixture
 def test_key() -> AbstractKey:

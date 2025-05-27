@@ -131,13 +131,17 @@ class HMACKey(AbstractKey):
         )
 
     @classmethod
-    def load_pem(cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256") -> "HMACKey":
+    def load_pem(
+        cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+    ) -> "HMACKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
         return cls(key=key, algorithm=algorithm)
 
     @classmethod
-    def load_der(cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256") -> "HMACKey":
+    def load_der(
+        cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+    ) -> "HMACKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
         return cls(key=key, algorithm=algorithm)
@@ -167,4 +171,6 @@ class HMACKey(AbstractKey):
 
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
-        return HMACAlgorithm.verify(data=data, signature=signature, key=self.key, alg=self.algorithm)
+        return HMACAlgorithm.verify(
+            data=data, signature=signature, key=self.key, alg=self.algorithm
+        )

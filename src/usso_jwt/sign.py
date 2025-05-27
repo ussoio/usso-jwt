@@ -1,5 +1,3 @@
-import time
-
 import json_advanced as json
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
@@ -39,6 +37,7 @@ def sign_jwt_parts(
     signature = algorithm.sign(data=signing_input, key=key, alg=alg, password=password)
     return signature
 
+
 def generate_jwt(
     header: dict,
     payload: dict,
@@ -53,4 +52,3 @@ def generate_jwt(
     # Return complete JWT
     signature_b64 = b64url_encode(signature)
     return f"{header_b64}.{payload_b64}.{signature_b64}"
-

@@ -230,4 +230,6 @@ class ECDSAKey(AbstractKey):
 
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
-        return ECDSAAlgorithm.verify(data=data, signature=signature, key=self.public_der(), alg=self.algorithm)
+        return ECDSAAlgorithm.verify(
+            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+        )

@@ -33,7 +33,9 @@ def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):
     # Test ES256
     signature = ECDSAAlgorithm.sign(data=signing_input, key=ecdsa_jwk, alg="ES256")
     assert isinstance(signature, bytes)
-    assert ECDSAAlgorithm.verify(data=signing_input, signature=signature, key=ecdsa_jwk, alg="ES256")
+    assert ECDSAAlgorithm.verify(
+        data=signing_input, signature=signature, key=ecdsa_jwk, alg="ES256"
+    )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
@@ -62,7 +64,9 @@ def test_ecdsa_all_algorithms(
         ("ES512", ecdsa_jwk_512),
     ]:
         signature = ECDSAAlgorithm.sign(data=signing_input, key=jwk, alg=alg)
-        assert ECDSAAlgorithm.verify(data=signing_input, signature=signature, key=jwk, alg=alg)
+        assert ECDSAAlgorithm.verify(
+            data=signing_input, signature=signature, key=jwk, alg=alg
+        )
 
 
 def test_ecdsa_key_generate():

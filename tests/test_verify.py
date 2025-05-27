@@ -1,6 +1,7 @@
 import httpx
-from src.usso_jwt import verify, sign, exceptions
 import pytest
+
+from src.usso_jwt import exceptions, sign, verify
 from src.usso_jwt.algorithms import AbstractKey
 
 
@@ -26,7 +27,7 @@ def test_invalid_signature(
         key=test_key.private_der(),
         alg=test_key.algorithm,
     )
-    jwt = jwt[:-1]# + chr(ord(jwt[-1]) + 1)
+    jwt = jwt[:-1]  # + chr(ord(jwt[-1]) + 1)
     with pytest.raises(exceptions.JWTInvalidFormatError):
         verify.verify_jwt(token=jwt, jwk=test_key.jwk())
 

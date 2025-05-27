@@ -238,4 +238,6 @@ class RSAKey(AbstractKey):
 
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
-        return RSAAlgorithm.verify(data=data, signature=signature, key=self.public_der(), alg=self.algorithm)
+        return RSAAlgorithm.verify(
+            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+        )

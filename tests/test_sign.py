@@ -1,9 +1,8 @@
-import httpx
 import json_advanced as json
-from src.usso_jwt import sign, verify, exceptions
-from src.usso_jwt.algorithms import EdDSAKey, RSAKey, ECDSAKey, AbstractKey
-
 import pytest
+
+from src.usso_jwt import sign, verify
+from src.usso_jwt.algorithms import AbstractKey
 from src.usso_jwt.core import b64url_encode
 
 
@@ -59,4 +58,3 @@ def test_generate_jwt(
     )
     # assert verify.verify_temporal_claims(payload=payload)
     assert verify.verify_jwt(token=jwt, jwk=test_key.jwk())
-
