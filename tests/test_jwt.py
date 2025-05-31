@@ -74,7 +74,7 @@ def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey)
         key=test_key.jwk(),
     )
     with pytest.raises(exceptions.JWTInvalidSignatureError):
-        jwt_obj.payload
+        print(jwt_obj.token, jwt_obj.payload)
 
 
 def test_no_key(test_token: str):

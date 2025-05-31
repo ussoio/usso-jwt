@@ -25,7 +25,7 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
         signing_input = f"{header_b64}.{payload_b64}".encode()
         return header, payload, signature, signing_input
     except (ValueError, json.JSONDecodeError) as e:
-        raise JWTInvalidFormatError(f"Invalid JWT format: {str(e)}")
+        raise JWTInvalidFormatError()
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
@@ -34,17 +34,17 @@ def fetch_jwk(*, jwks_url: str, kid: str) -> dict | None:
     for key in jwks["keys"]:
         if key["kid"] == kid:
             return key
-    raise JWKNotFoundError(f"JWK with kid '{kid}' not found")
+    raise JWKNotFoundError()
 
 
 def verify_temporal_claims(*, payload: dict):
     now = int(time.time())
     if "exp" in payload and now >= payload["exp"]:
-        raise JWTExpiredError("Token expired")
+        raise JWTExpiredError()
     if "nbf" in payload and now < payload["nbf"]:
-        raise JWTNotValidYetError("Token not valid yet (nbf)")
+        raise JWTNotValidYetError()
     if "iat" in payload and now < payload["iat"] - 60:
-        raise JWTIssuedInFutureError("Token issued in the future (iat)")
+        raise JWTIssuedInFutureError()
     return True
 
 
@@ -75,7 +75,7 @@ def verify_signature(
 
     algorithm = get_algorithm(alg)
     if not algorithm.verify(data=signing_input, signature=signature, key=key, alg=alg):
-        raise JWTInvalidSignatureError("Invalid signature")
+        raise JWTInvalidSignatureError()
     return True
 
 
@@ -89,6 +89,6 @@ def verify_jwt(
     if not verify_signature(
         alg=header["alg"], key=jwk, data=signing_input, signature=signature
     ):
-        raise JWTInvalidSignatureError("Invalid signature")
+        raise JWTInvalidSignatureError()
 
     return verify_temporal_claims(payload=payload)
