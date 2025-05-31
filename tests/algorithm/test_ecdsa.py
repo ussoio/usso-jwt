@@ -113,3 +113,31 @@ def test_ecdsa_key_type(ecdsa_jwk_256: dict | bytes):
     """Test ECDSA key type."""
     key = ECDSAKey.load_jwk(ecdsa_jwk_256)
     assert key.type == "ECDSA"
+
+
+@pytest.fixture
+def test_key() -> ECDSAKey:
+    return ECDSAKey.generate()
+
+
+@pytest.fixture
+def test_token(test_valid_payload: dict, test_header: dict, test_key: ECDSAKey):
+    from src.usso_jwt import sign
+
+    jwt = sign.generate_jwt(
+        header=test_header,
+        payload=test_valid_payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    return jwt
+
+
+def test_pem_key(test_token: str, test_key: ECDSAKey):
+    from src.usso_jwt import jwt
+
+    jwt_obj = jwt.JWT(
+        token=test_token,
+        key=test_key.public_pem(),
+    )
+    assert jwt_obj.verify()

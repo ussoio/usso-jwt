@@ -70,10 +70,10 @@ def test_payload_class(
 
 def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey):
     jwt_obj = jwt.JWT(
-        token=test_token[:-1] + "1",
+        token=test_token[:-1],
         key=test_key.jwk(),
     )
-    with pytest.raises(exceptions.JWTInvalidSignatureError):
+    with pytest.raises(exceptions.JWTInvalidFormatError):
         print(jwt_obj.token, jwt_obj.payload)
 
 

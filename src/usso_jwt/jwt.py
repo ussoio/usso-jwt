@@ -1,8 +1,9 @@
 from typing import TypeVar
 
 from cachetools import TTLCache, cached
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
+from .algorithms.base import convert_key_to_jwk
 from .core import Algorithm
 from .verify import (
     extract_jwt_parts,
@@ -16,7 +17,7 @@ T = TypeVar("T", bound="BaseModel")
 
 class JWT(BaseModel):
     token: str
-    key: dict | None = None
+    key: dict | str | bytes | None = None
     jwks_url: str | None = None
 
     def __init__(
@@ -29,6 +30,19 @@ class JWT(BaseModel):
     ):
         super().__init__(token=token, key=key, jwks_url=jwks_url)
         self._payload_class = payload_class
+
+    @field_validator("key", mode="before")
+    def validate_key(cls, v: dict | str | bytes | None) -> dict | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return convert_key_to_jwk(v.encode())
+        if isinstance(v, bytes):
+            print(v)
+            v = convert_key_to_jwk(v)
+            print(v)
+            return v
+        return v
 
     def __hash__(self) -> int:
         return hash(self.token)
@@ -77,7 +91,9 @@ class JWT(BaseModel):
             raise ValueError("Either jwks_url or key must be provided")
 
         if self.jwks_url is not None:
-            self.key = fetch_jwk(self.unverified_header["kid"], self.jwks_url)
+            self.key = fetch_jwk(
+                kid=self.unverified_header["kid"], jwks_url=self.jwks_url
+            )
 
         if self.key is None:
             raise ValueError("Key must be provided")

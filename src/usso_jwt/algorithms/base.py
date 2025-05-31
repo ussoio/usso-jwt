@@ -3,6 +3,44 @@ from abc import ABC, abstractmethod
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+
+from ..core import b64url_encode
+
+
+def convert_key_to_jwk(key: bytes) -> dict:
+    """Convert PEM to dict."""
+    # Check if the key is not in PEM format (doesn't start with BEGIN)
+    if not key.startswith(b"-----BEGIN"):
+        return {
+            "kty": "oct",
+            "k": b64url_encode(key),
+        }
+
+    public_key = serialization.load_pem_public_key(key, backend=default_backend())
+    if isinstance(public_key, RSAPublicKey):
+        return {
+            "kty": "RSA",
+            "n": b64url_encode(public_key.public_numbers().n.to_bytes(256, "big")),
+            "e": b64url_encode(public_key.public_numbers().e.to_bytes(256, "big")),
+        }
+    elif isinstance(public_key, EllipticCurvePublicKey):
+        return {
+            "kty": "EC",
+            "crv": public_key.curve.name,
+            "x": b64url_encode(public_key.public_numbers().x.to_bytes(256, "big")),
+            "y": b64url_encode(public_key.public_numbers().y.to_bytes(256, "big")),
+        }
+    elif isinstance(public_key, Ed25519PublicKey):
+        return {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": b64url_encode(public_key.public_bytes_raw()),
+        }
+    else:
+        raise ValueError("Unsupported algorithm")
 
 
 class KeyAlgorithm(ABC):
