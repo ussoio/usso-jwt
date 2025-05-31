@@ -46,8 +46,8 @@ def test_eddsa_sign_verify(eddsa_jwk: dict | bytes):
 
 def test_eddsa_unsupported_algorithm():
     """Test EdDSA with unsupported algorithm."""
-    with pytest.raises(ValueError, match="Unsupported EdDSA algorithm: Ed25519"):
-        EdDSAAlgorithm.sign(data=b"test", key={}, alg="Ed25519")
+    with pytest.raises(ValueError, match="Unsupported EdDSA algorithm: Ed448"):
+        EdDSAAlgorithm.sign(data=b"test", key={}, alg="Ed448")
 
 
 def test_eddsa_key_generate():
@@ -119,5 +119,31 @@ def test_pem_key(test_token: str, test_key: EdDSAKey):
     jwt_obj = jwt.JWT(
         token=test_token,
         key=test_key.public_pem(),
+    )
+    assert jwt_obj.verify()
+
+
+def test_ed25519_sign_verify():
+    from src.usso_jwt import jwt, sign
+
+    headers = {
+        "alg": "Ed25519",
+        "typ": "JWT",
+    }
+    payload = {
+        "sub": "1234567890",
+        "name": "John Doe",
+        "iat": 1717334400,
+    }
+    key = EdDSAKey.generate(algorithm="Ed25519")
+    token = sign.generate_jwt(
+        header=headers,
+        payload=payload,
+        key=key.private_der(),
+        alg=key.algorithm,
+    )
+    jwt_obj = jwt.JWT(
+        token=token,
+        key=key.public_pem(),
     )
     assert jwt_obj.verify()

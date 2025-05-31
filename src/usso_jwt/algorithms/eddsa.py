@@ -9,7 +9,7 @@ from .base import AbstractKey, KeyAlgorithm
 class EdDSAAlgorithm(KeyAlgorithm):
     """EdDSA algorithm implementation (Ed25519)."""
 
-    SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA"}
+    SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA", "Ed25519", "ED25519"}
 
     @staticmethod
     def load_key(

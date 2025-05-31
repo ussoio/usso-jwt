@@ -25,6 +25,7 @@ class Algorithm(str, Enum):
 
     # EdDSA with SHA-2
     EdDSA = "EDDSA"  # EdDSA with SHA-512
+    Ed25519 = "ED25519"  # EdDSA with SHA-512
 
 
 def b64url_decode(data: str) -> bytes:

@@ -12,7 +12,7 @@ def get_algorithm(alg: str) -> Type[KeyAlgorithm]:
     Get the appropriate algorithm manager for the given algorithm.
 
     Args:
-        alg: The algorithm name (e.g., "HS256", "RS256", "ES256", "EdDSA")
+        alg: The algorithm name (e.g., "HS256", "RS256", "ES256", "EdDSA", "Ed25519")
 
     Returns:
         The appropriate algorithm manager class

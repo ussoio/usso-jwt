@@ -49,7 +49,7 @@ token = jwt.sign(rsa_private_key, "RS256")
 token = jwt.sign(ecdsa_private_key, "ES256")
 
 # Sign with EdDSA
-token = jwt.sign(eddsa_private_key, "EdDSA")
+token = jwt.sign(eddsa_private_key, "Ed25519")
 ```
 
 ### Verifying a JWT
@@ -67,7 +67,7 @@ jwt = JWT.verify(token, rsa_public_key, "RS256")
 jwt = JWT.verify(token, ecdsa_public_key, "ES256")
 
 # Verify with EdDSA
-jwt = JWT.verify(token, eddsa_public_key, "EdDSA")
+jwt = JWT.verify(token, eddsa_public_key, "Ed25519")
 ```
 
 ### Working with JWKs
