@@ -35,7 +35,10 @@ def sign_jwt_parts(
     # Get algorithm and sign
     algorithm = get_algorithm(alg)
     signature = algorithm.sign(
-        data=signing_input, key=key, alg=alg, password=password
+        data=signing_input,
+        key=key,
+        alg=alg,
+        password=password,
     )
     return signature
 
