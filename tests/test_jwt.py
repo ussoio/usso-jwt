@@ -1,7 +1,7 @@
 import pytest
 from pydantic import BaseModel
 
-from src.usso_jwt import algorithms, exceptions, jwt, sign
+from src.usso_jwt import algorithms, exceptions, schemas, sign
 
 
 @pytest.fixture
@@ -28,9 +28,9 @@ def test_jwt(
     test_header: dict,
     test_valid_payload: dict,
 ):
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=test_token,
-        key=test_key.jwk(),
+        config=schemas.JWTConfig(key=test_key.jwk()),
     )
     assert jwt_obj.header == test_header
     assert jwt_obj.payload == test_valid_payload
@@ -40,9 +40,9 @@ def test_jwt(
 def test_invalid_token(test_token: str, test_key: algorithms.AbstractKey):
     with pytest.raises(exceptions.JWTInvalidFormatError):
         invalid_token = f"{test_token[:-2]}.{test_token[-1]}"
-        jwt_obj = jwt.JWT(
+        jwt_obj = schemas.JWT(
             token=invalid_token,
-            key=test_key.jwk(),
+            config=schemas.JWTConfig(key=test_key.jwk()),
         )
         jwt_obj.verify()
 
@@ -56,9 +56,9 @@ def test_payload_class(
         iat: int
         exp: int
 
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=test_token,
-        key=test_key.jwk(),
+        config=schemas.JWTConfig(key=test_key.jwk()),
         payload_class=TestPayload,
     )
 
@@ -69,9 +69,9 @@ def test_payload_class(
 
 
 def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey):
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=test_token[:-1],
-        key=test_key.jwk(),
+        config=schemas.JWTConfig(key=test_key.jwk() ),
     )
     with pytest.raises(exceptions.JWTInvalidFormatError):
         print(jwt_obj.token, jwt_obj.payload)
@@ -79,7 +79,7 @@ def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey)
 
 def test_no_key(test_token: str):
     with pytest.raises(ValueError):
-        jwt_obj = jwt.JWT(
+        jwt_obj = schemas.JWT(
             token=test_token,
         )
         jwt_obj.verify()

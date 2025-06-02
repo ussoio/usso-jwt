@@ -129,10 +129,10 @@ def test_token(test_valid_payload: dict, test_header: dict, test_key: RSAKey):
 
 
 def test_pem_key(test_token: str, test_key: RSAKey):
-    from src.usso_jwt import jwt
+    from src.usso_jwt import schemas
 
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=test_token,
-        key=test_key.public_pem(),
+        config=schemas.JWTConfig(key=test_key.public_pem()),
     )
     assert jwt_obj.verify()

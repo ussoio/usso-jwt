@@ -2,7 +2,7 @@ import json_advanced as json
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
 from .algorithms import get_algorithm
-from .core import b64url_encode
+from .utils import b64url_encode
 
 
 def create_jwt_header(alg: str, kid: str | None = None, **kwargs) -> dict:

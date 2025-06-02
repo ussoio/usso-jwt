@@ -3,7 +3,7 @@ import pytest
 
 from src.usso_jwt import sign, verify
 from src.usso_jwt.algorithms import AbstractKey
-from src.usso_jwt.core import b64url_encode
+from src.usso_jwt.utils import b64url_encode
 
 
 @pytest.fixture

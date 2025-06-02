@@ -4,6 +4,7 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
+from src.usso_jwt import schemas, sign
 from src.usso_jwt.algorithms import EdDSAAlgorithm, EdDSAKey
 
 
@@ -114,17 +115,14 @@ def test_token(test_valid_payload: dict, test_header: dict, test_key: EdDSAKey):
 
 
 def test_pem_key(test_token: str, test_key: EdDSAKey):
-    from src.usso_jwt import jwt
-
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=test_token,
-        key=test_key.public_pem(),
+        config=schemas.JWTConfig(key=test_key.public_pem()),
     )
     assert jwt_obj.verify()
 
 
 def test_ed25519_sign_verify():
-    from src.usso_jwt import jwt, sign
 
     headers = {
         "alg": "Ed25519",
@@ -142,8 +140,8 @@ def test_ed25519_sign_verify():
         key=key.private_der(),
         alg=key.algorithm,
     )
-    jwt_obj = jwt.JWT(
+    jwt_obj = schemas.JWT(
         token=token,
-        key=key.public_pem(),
+        config=schemas.JWTConfig(key=key.public_pem()),
     )
     assert jwt_obj.verify()

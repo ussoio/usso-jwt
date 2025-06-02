@@ -55,3 +55,35 @@ class JWKNotFoundError(JWTError):
     def __init__(self):
         self.message = "JWK with the specified kid is not found"
         super().__init__(self.message)
+
+
+class JWTInvalidAudienceError(JWTError):
+    """Raised when a JWT's audience claim is invalid."""
+
+    def __init__(self):
+        self.message = "JWT audience claim is invalid"
+        super().__init__(self.message)
+
+
+class JWTInvalidACRError(JWTError):
+    """Raised when a JWT's acr claim is invalid."""
+
+    def __init__(self):
+        self.message = "JWT acr claim is invalid"
+        super().__init__(self.message)
+
+
+class JWTInvalidIssuerError(JWTError):
+    """Raised when a JWT's issuer claim is invalid."""
+
+    def __init__(self):
+        self.message = "JWT issuer claim is invalid"
+        super().__init__(self.message)
+
+
+class JWTMissingAudienceError(JWTError):
+    """Raised when a JWT's audience claim is required but missing."""
+
+    def __init__(self):
+        self.message = "JWT audience claim is required but missing"
+        super().__init__(self.message)

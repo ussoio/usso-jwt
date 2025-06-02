@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
-from ..core import b64url_encode
+from ..utils import b64url_encode
 
 
 def convert_key_to_jwk(key: bytes) -> dict:

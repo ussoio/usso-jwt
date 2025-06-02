@@ -3,7 +3,7 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
-from src.usso_jwt.core import b64url_encode
+from src.usso_jwt.utils import b64url_encode
 
 
 @pytest.fixture
