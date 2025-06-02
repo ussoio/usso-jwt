@@ -60,7 +60,7 @@ def verify_claims(
     expected_issuer: str | list[str] | None = None,
 ) -> bool:
     """
-    Verify additional JWT claims like audience, acr, and issuer if they 
+    Verify additional JWT claims like audience, acr, and issuer if they
     are present.
 
     Args:
@@ -79,7 +79,7 @@ def verify_claims(
 
     Raises:
         JWTInvalidAudienceError: If the audience claim is invalid
-        JWTMissingAudienceError: If the audience claim is missing 
+        JWTMissingAudienceError: If the audience claim is missing
                                  and expected_audience is provided
         JWTInvalidACRError: If the acr claim is invalid
         JWTInvalidIssuerError: If the issuer claim is invalid
