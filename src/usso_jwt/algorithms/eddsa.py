@@ -13,7 +13,8 @@ class EdDSAAlgorithm(KeyAlgorithm):
 
     @staticmethod
     def load_key(
-        key: dict | bytes | ed25519.Ed25519PrivateKey, password: bytes | None = None
+        key: dict | bytes | ed25519.Ed25519PrivateKey,
+        password: bytes | None = None,
     ) -> ed25519.Ed25519PrivateKey:
         """
         Load EdDSA private key from JWK dict or raw bytes.
@@ -28,7 +29,9 @@ class EdDSAAlgorithm(KeyAlgorithm):
         if isinstance(key, ed25519.Ed25519PrivateKey):
             return key
         if isinstance(key, dict):
-            return ed25519.Ed25519PrivateKey.from_private_bytes(b64url_decode(key["d"]))
+            return ed25519.Ed25519PrivateKey.from_private_bytes(
+                b64url_decode(key["d"])
+            )
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
         )
@@ -86,22 +89,27 @@ class EdDSAAlgorithm(KeyAlgorithm):
             raise ValueError(f"Unsupported EdDSA algorithm: {alg}")
 
         if isinstance(key, dict):
-            pubkey = ed25519.Ed25519PublicKey.from_public_bytes(b64url_decode(key["x"]))
+            pubkey = ed25519.Ed25519PublicKey.from_public_bytes(
+                b64url_decode(key["x"])
+            )
         else:
-            pubkey = serialization.load_der_public_key(key, backend=default_backend())
+            pubkey = serialization.load_der_public_key(
+                key, backend=default_backend()
+            )
 
         try:
             pubkey.verify(signature, data)
             return True
-        except Exception as e:
-            print(f"Invalid signature: {e} {type(e)} {type(signature)} {type(data)}")
+        except Exception:
             return False
 
 
 class EdDSAKey(AbstractKey):
     """EdDSA key implementation."""
 
-    def __init__(self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"):
+    def __init__(
+        self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"
+    ):
         self.key = key
         self.algorithm = algorithm
 
@@ -112,20 +120,27 @@ class EdDSAKey(AbstractKey):
         algorithm: str = "EdDSA",
     ) -> "EdDSAKey":
         """Generate a new EdDSA key."""
-        return EdDSAKey(key=ed25519.Ed25519PrivateKey.generate(), algorithm=algorithm)
+        return EdDSAKey(
+            key=ed25519.Ed25519PrivateKey.generate(), algorithm=algorithm
+        )
 
     @classmethod
     def load_jwk(cls, key: dict) -> "EdDSAKey":
         """Load a key from JWK dict."""
         algorithm = key.get("alg", "EdDSA")
         return EdDSAKey(
-            key=ed25519.Ed25519PrivateKey.from_private_bytes(b64url_decode(key["d"])),
+            key=ed25519.Ed25519PrivateKey.from_private_bytes(
+                b64url_decode(key["d"])
+            ),
             algorithm=algorithm,
         )
 
     @classmethod
     def load_pem(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "EdDSA"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "EdDSA",
     ) -> "EdDSAKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
@@ -133,7 +148,10 @@ class EdDSAKey(AbstractKey):
 
     @classmethod
     def load_der(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "EdDSA"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "EdDSA",
     ) -> "EdDSAKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
@@ -150,6 +168,10 @@ class EdDSAKey(AbstractKey):
             "use": "sig",
         }
 
+    def public_key(self) -> ed25519.Ed25519PublicKey:
+        """Get the public key."""
+        return self.key.public_key()
+
     @property
     def type(self) -> str:
         """Get the type of the key."""
@@ -162,5 +184,8 @@ class EdDSAKey(AbstractKey):
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
         return EdDSAAlgorithm.verify(
-            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+            data=data,
+            signature=signature,
+            key=self.public_der(),
+            alg=self.algorithm,
         )

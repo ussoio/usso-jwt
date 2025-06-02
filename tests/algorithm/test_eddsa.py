@@ -15,7 +15,9 @@ def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes):
     assert hasattr(key, "private_bytes")
 
 
-def test_eddsa_load_key_from_bytes(eddsa_private_key: ed25519.Ed25519PrivateKey):
+def test_eddsa_load_key_from_bytes(
+    eddsa_private_key: ed25519.Ed25519PrivateKey,
+):
     """Test loading EdDSA key from raw bytes."""
     key_bytes = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -73,7 +75,9 @@ def test_eddsa_key_load_pem(eddsa_private_key: ed25519.Ed25519PrivateKey):
     der = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
     )
     key = EdDSAKey.load_der(der, algorithm="EdDSA", password=b"password")
     assert key.jwk()["alg"] == "EdDSA"
@@ -102,7 +106,9 @@ def test_key() -> EdDSAKey:
 
 
 @pytest.fixture
-def test_token(test_valid_payload: dict, test_header: dict, test_key: EdDSAKey):
+def test_token(
+    test_valid_payload: dict, test_header: dict, test_key: EdDSAKey
+):
     from src.usso_jwt import sign
 
     jwt = sign.generate_jwt(
@@ -123,7 +129,6 @@ def test_pem_key(test_token: str, test_key: EdDSAKey):
 
 
 def test_ed25519_sign_verify():
-
     headers = {
         "alg": "Ed25519",
         "typ": "JWT",

@@ -58,7 +58,9 @@ class HMACAlgorithm(KeyAlgorithm):
 
         key_bytes = cls.load_key(key, password)
         h = hmac.HMAC(
-            key_bytes, cls.SUPPORTED_ALGORITHMS[alg](), backend=default_backend()
+            key_bytes,
+            cls.SUPPORTED_ALGORITHMS[alg](),
+            backend=default_backend(),
         )
         h.update(data)
         return h.finalize()
@@ -91,7 +93,9 @@ class HMACAlgorithm(KeyAlgorithm):
 
         key_bytes = cls.load_key(key, password)
         h = hmac.HMAC(
-            key_bytes, cls.SUPPORTED_ALGORITHMS[alg](), backend=default_backend()
+            key_bytes,
+            cls.SUPPORTED_ALGORITHMS[alg](),
+            backend=default_backend(),
         )
         h.update(data)
         try:
@@ -132,7 +136,10 @@ class HMACKey(AbstractKey):
 
     @classmethod
     def load_pem(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "HS256",
     ) -> "HMACKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
@@ -140,11 +147,18 @@ class HMACKey(AbstractKey):
 
     @classmethod
     def load_der(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "HS256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "HS256",
     ) -> "HMACKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
         return cls(key=key, algorithm=algorithm)
+
+    def public_key(self) -> bytes:
+        """Get the public key."""
+        return self.key
 
     @property
     def jwk(self) -> dict:

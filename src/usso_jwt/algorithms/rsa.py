@@ -7,7 +7,8 @@ from .base import AbstractKey, KeyAlgorithm
 
 
 class RSAAlgorithm(KeyAlgorithm):
-    """RSA algorithm implementation (RS256, RS384, RS512, PS256, PS384, PS512)."""
+    """RSA algorithm implementation
+    (RS256, RS384, RS512, PS256, PS384, PS512)."""
 
     SUPPORTED_ALGORITHMS = {
         "RS256": hashes.SHA256,
@@ -69,7 +70,8 @@ class RSAAlgorithm(KeyAlgorithm):
         Args:
             data: The data to sign
             key: Either a JWK dict or PEM-encoded private key bytes
-            alg: The signing algorithm to use (RS256, RS384, RS512, PS256, PS384, PS512)
+            alg: The signing algorithm to use
+                 (RS256, RS384, RS512, PS256, PS384, PS512)
             password: Optional password for encrypted PEM keys
 
         Returns:
@@ -109,7 +111,8 @@ class RSAAlgorithm(KeyAlgorithm):
             data: The data that was signed
             signature: The signature to verify
             key: Either a JWK dict or PEM-encoded public key bytes
-            alg: The signing algorithm used (RS256, RS384, RS512, PS256, PS384, PS512)
+            alg: The signing algorithm used
+                 (RS256, RS384, RS512, PS256, PS384, PS512)
             password: Optional password for encrypted PEM keys
 
         Returns:
@@ -125,7 +128,10 @@ class RSAAlgorithm(KeyAlgorithm):
             pubkey = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
         else:
             # Load from DER
-            pubkey = serialization.load_der_public_key(key, backend=default_backend())
+            pubkey = serialization.load_der_public_key(
+                key,
+                backend=default_backend(),
+            )
 
         hash_alg = cls.SUPPORTED_ALGORITHMS[alg]
 
@@ -194,7 +200,10 @@ class RSAKey(AbstractKey):
 
     @classmethod
     def load_pem(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "RS256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "RS256",
     ) -> "RSAKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
@@ -202,7 +211,10 @@ class RSAKey(AbstractKey):
 
     @classmethod
     def load_der(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "RS256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "RS256",
     ) -> "RSAKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
@@ -215,12 +227,22 @@ class RSAKey(AbstractKey):
             "kty": "RSA",
             "alg": self.algorithm,
             "n": b64url_encode(
-                public_key.public_numbers().n.to_bytes(public_key.key_size // 8, "big")
+                public_key.public_numbers().n.to_bytes(
+                    public_key.key_size // 8,
+                    "big",
+                )
             ),
             "e": b64url_encode(
-                public_key.public_numbers().e.to_bytes(public_key.key_size // 8, "big")
+                public_key.public_numbers().e.to_bytes(
+                    public_key.key_size // 8,
+                    "big",
+                )
             ),
         }
+
+    def public_key(self) -> rsa.RSAPublicKey:
+        """Get the public key."""
+        return self.key.public_key()
 
     @property
     def type(self) -> str:
@@ -239,5 +261,8 @@ class RSAKey(AbstractKey):
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
         return RSAAlgorithm.verify(
-            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+            data=data,
+            signature=signature,
+            key=self.public_der(),
+            alg=self.algorithm,
         )

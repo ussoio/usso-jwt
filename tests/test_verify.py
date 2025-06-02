@@ -90,7 +90,9 @@ def test_missing_audience(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTMissingAudienceError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt")
+        verify.verify_jwt(
+            token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt"
+        )
 
 
 def test_invalid_audience(
@@ -103,7 +105,9 @@ def test_invalid_audience(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTInvalidAudienceError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt")
+        verify.verify_jwt(
+            token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt"
+        )
 
 
 def test_invalid_acr_audience(
@@ -116,7 +120,11 @@ def test_invalid_acr_audience(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTInvalidACRError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk(), expected_acr="refresh")
+        verify.verify_jwt(
+            token=jwt,
+            jwk=test_key.jwk(),
+            expected_acr="refresh",
+        )
 
 
 def test_invalid_issuer(
@@ -129,4 +137,8 @@ def test_invalid_issuer(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTInvalidIssuerError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk(), expected_issuer="test_jwt")
+        verify.verify_jwt(
+            token=jwt,
+            jwk=test_key.jwk(),
+            expected_issuer="test_jwt",
+        )

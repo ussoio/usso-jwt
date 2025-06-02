@@ -33,7 +33,9 @@ def test_rsa_sign_verify(rsa_jwk: dict | bytes):
     # Test RS256
     signature = RSAAlgorithm.sign(data=data, key=rsa_jwk, alg="RS256")
     assert isinstance(signature, bytes)
-    assert RSAAlgorithm.verify(data=data, signature=signature, key=rsa_jwk, alg="RS256")
+    assert RSAAlgorithm.verify(
+        data=data, signature=signature, key=rsa_jwk, alg="RS256"
+    )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
@@ -87,7 +89,9 @@ def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey):
     der = rsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
     )
     key = RSAKey.load_der(der, algorithm="RS256", password=b"password")
     assert key.jwk()["alg"] == "RS256"

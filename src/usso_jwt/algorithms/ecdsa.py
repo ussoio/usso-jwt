@@ -120,7 +120,9 @@ class ECDSAAlgorithm(KeyAlgorithm):
             )
         else:
             # Load from DER
-            pubkey = serialization.load_der_public_key(key, backend=default_backend())
+            pubkey = serialization.load_der_public_key(
+                key, backend=default_backend()
+            )
 
         try:
             # Reconstruct signature from r and s components
@@ -138,7 +140,9 @@ class ECDSAAlgorithm(KeyAlgorithm):
 class ECDSAKey(AbstractKey):
     """ECDSA key implementation."""
 
-    def __init__(self, *, key: ec.EllipticCurvePrivateKey, algorithm: str = "ES256"):
+    def __init__(
+        self, *, key: ec.EllipticCurvePrivateKey, algorithm: str = "ES256"
+    ):
         self.key = key
         self.algorithm = algorithm
 
@@ -181,7 +185,10 @@ class ECDSAKey(AbstractKey):
 
     @classmethod
     def load_pem(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "ES256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "ES256",
     ) -> "ECDSAKey":
         """Load a key from PEM."""
         key = super().load_pem(key, password)
@@ -189,7 +196,10 @@ class ECDSAKey(AbstractKey):
 
     @classmethod
     def load_der(
-        cls, key: bytes, password: bytes | None = None, algorithm: str = "ES256"
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        algorithm: str = "ES256",
     ) -> "ECDSAKey":
         """Load a key from DER."""
         key = super().load_der(key, password)
@@ -219,6 +229,10 @@ class ECDSAKey(AbstractKey):
             ),
         }
 
+    def public_key(self) -> ec.EllipticCurvePublicKey:
+        """Get the public key."""
+        return self.key.public_key()
+
     @property
     def type(self) -> str:
         """Get the type of the key."""
@@ -231,5 +245,8 @@ class ECDSAKey(AbstractKey):
     def verify(self, data: bytes, signature: bytes) -> bool:
         """Verify signature using the key."""
         return ECDSAAlgorithm.verify(
-            data=data, signature=signature, key=self.public_der(), alg=self.algorithm
+            data=data,
+            signature=signature,
+            key=self.public_der(),
+            alg=self.algorithm,
         )

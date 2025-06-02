@@ -11,7 +11,9 @@ def test_key() -> algorithms.AbstractKey:
 
 @pytest.fixture
 def test_token(
-    test_valid_payload: dict, test_header: dict, test_key: algorithms.AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: algorithms.AbstractKey,
 ):
     jwt = sign.generate_jwt(
         header=test_header,
@@ -68,10 +70,12 @@ def test_payload_class(
     )
 
 
-def test_not_verified_payload(test_token: str, test_key: algorithms.AbstractKey):
+def test_not_verified_payload(
+    test_token: str, test_key: algorithms.AbstractKey
+):
     jwt_obj = schemas.JWT(
         token=test_token[:-1],
-        config=schemas.JWTConfig(key=test_key.jwk() ),
+        config=schemas.JWTConfig(key=test_key.jwk()),
     )
     with pytest.raises(exceptions.JWTInvalidFormatError):
         print(jwt_obj.token, jwt_obj.payload)

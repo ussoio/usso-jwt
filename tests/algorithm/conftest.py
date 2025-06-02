@@ -94,10 +94,14 @@ def ecdsa_jwk(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
         "kty": "EC",
         "crv": "P-256",
         "x": b64url_encode(
-            public_numbers.x.to_bytes((public_numbers.x.bit_length() + 7) // 8, "big")
+            public_numbers.x.to_bytes(
+                (public_numbers.x.bit_length() + 7) // 8, "big"
+            )
         ),
         "y": b64url_encode(
-            public_numbers.y.to_bytes((public_numbers.y.bit_length() + 7) // 8, "big")
+            public_numbers.y.to_bytes(
+                (public_numbers.y.bit_length() + 7) // 8, "big"
+            )
         ),
         "d": b64url_encode(
             private_numbers.private_value.to_bytes(

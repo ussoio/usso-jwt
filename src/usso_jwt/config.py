@@ -16,7 +16,11 @@ class JWTConfig(BaseModel):
     )
     key: str | bytes | dict | None = Field(
         default=None,
-        description="Key for signing/verification. Can be a PEM string, bytes, or JWK dict. If PEM string, it will be converted to JWK.",
+        description="""Key for signing/verification. Can be a PEM string, 
+        bytes, or JWK dict. If PEM string, it will be converted to JWK.
+        If JWK dict, it will be used as is.
+        If bytes, it will be converted to JWK.
+        """,
     )
     issuer: str | list[str] | None = Field(
         default=None,

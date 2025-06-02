@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class Algorithm(str, Enum):
+class Algorithm(StrEnum):
     # HMAC with SHA-2
     HS256 = "HS256"  # HMAC with SHA-256
     HS384 = "HS384"  # HMAC with SHA-384

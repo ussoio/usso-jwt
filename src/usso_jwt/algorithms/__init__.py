@@ -1,5 +1,3 @@
-from typing import Type
-
 from .base import AbstractKey, KeyAlgorithm
 from .ecdsa import ECDSAAlgorithm, ECDSAKey
 from .eddsa import EdDSAAlgorithm, EdDSAKey
@@ -7,12 +5,13 @@ from .hmac import HMACAlgorithm, HMACKey
 from .rsa import RSAAlgorithm, RSAKey
 
 
-def get_algorithm(alg: str) -> Type[KeyAlgorithm]:
+def get_algorithm(alg: str) -> type[KeyAlgorithm]:
     """
     Get the appropriate algorithm manager for the given algorithm.
 
     Args:
-        alg: The algorithm name (e.g., "HS256", "RS256", "ES256", "EdDSA", "Ed25519")
+        alg: The algorithm name 
+             (e.g., "HS256", "RS256", "ES256", "EdDSA", "Ed25519")
 
     Returns:
         The appropriate algorithm manager class

@@ -29,7 +29,7 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
         signing_input = f"{header_b64}.{payload_b64}".encode()
         return header, payload, signature, signing_input
     except (ValueError, json.JSONDecodeError) as e:
-        raise JWTInvalidFormatError()
+        raise JWTInvalidFormatError() from e
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
@@ -60,21 +60,27 @@ def verify_claims(
     expected_issuer: str | list[str] | None = None,
 ) -> bool:
     """
-    Verify additional JWT claims like audience, acr, and issuer if they are present.
+    Verify additional JWT claims like audience, acr, and issuer if they 
+    are present.
 
     Args:
         payload: The JWT payload
-        expected_audience: The expected audience value(s) to validate against. Can be a single string or list of strings.
-                           If provided, the token MUST have an aud claim that matches one of the expected values.
-        expected_acr: The expected acr value(s) to validate against. Can be a single string or list of strings.
-        expected_issuer: The expected issuer value(s) to validate against. Can be a single string or list of strings.
+        expected_audience: The expected audience value(s) to validate against.
+                           Can be a single string or list of strings.
+                           If provided, the token MUST have an aud claim
+                           that matches one of the expected values.
+        expected_acr:      The expected acr value(s) to validate against.
+                           Can be a single string or list of strings.
+        expected_issuer:   The expected issuer value(s) to validate against.
+                           Can be a single string or list of strings.
 
     Returns:
         bool: True if all claims are valid
 
     Raises:
         JWTInvalidAudienceError: If the audience claim is invalid
-        JWTMissingAudienceError: If the audience claim is missing and expected_audience is provided
+        JWTMissingAudienceError: If the audience claim is missing 
+                                 and expected_audience is provided
         JWTInvalidACRError: If the acr claim is invalid
         JWTInvalidIssuerError: If the issuer claim is invalid
     """
@@ -130,7 +136,9 @@ def verify_signature(
         signing_input = data
 
     algorithm = get_algorithm(alg)
-    if not algorithm.verify(data=signing_input, signature=signature, key=key, alg=alg):
+    if not algorithm.verify(
+        data=signing_input, signature=signature, key=key, alg=alg
+    ):
         raise JWTInvalidSignatureError()
     return True
 

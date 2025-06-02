@@ -14,7 +14,9 @@ def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict | bytes):
     assert hasattr(key, "private_bytes")
 
 
-def test_ecdsa_load_key_from_pem(ecdsa_private_key: ec.EllipticCurvePrivateKey):
+def test_ecdsa_load_key_from_pem(
+    ecdsa_private_key: ec.EllipticCurvePrivateKey,
+):
     """Test loading ECDSA key from PEM."""
     der = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -31,7 +33,9 @@ def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):
     signing_input = b"test"
 
     # Test ES256
-    signature = ECDSAAlgorithm.sign(data=signing_input, key=ecdsa_jwk, alg="ES256")
+    signature = ECDSAAlgorithm.sign(
+        data=signing_input, key=ecdsa_jwk, alg="ES256"
+    )
     assert isinstance(signature, bytes)
     assert ECDSAAlgorithm.verify(
         data=signing_input, signature=signature, key=ecdsa_jwk, alg="ES256"
@@ -40,7 +44,10 @@ def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
     assert not ECDSAAlgorithm.verify(
-        data=signing_input, signature=invalid_signature, key=ecdsa_jwk, alg="ES256"
+        data=signing_input,
+        signature=invalid_signature,
+        key=ecdsa_jwk,
+        alg="ES256",
     )
 
 
@@ -92,7 +99,9 @@ def test_ecdsa_key_load_pem(ecdsa_private_key: ec.EllipticCurvePrivateKey):
     pem = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(b"password"),
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
     )
     key = ECDSAKey.load_pem(pem, algorithm="ES256", password=b"password")
     assert key.jwk()["alg"] == "ES256"
@@ -121,7 +130,9 @@ def test_key() -> ECDSAKey:
 
 
 @pytest.fixture
-def test_token(test_valid_payload: dict, test_header: dict, test_key: ECDSAKey):
+def test_token(
+    test_valid_payload: dict, test_header: dict, test_key: ECDSAKey
+):
     from src.usso_jwt import sign
 
     jwt = sign.generate_jwt(

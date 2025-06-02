@@ -23,11 +23,16 @@ def test_hmac_sign_verify(hmac_jwk: dict | bytes):
     """Test HMAC signing and verification."""
     # Prepare signing input
     header_b64 = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-    payload_b64 = "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyNDI2MjJ9"
+    payload_b64 = (
+        "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9l"
+        "IiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyNDI2MjJ9"
+    )
     signing_input = f"{header_b64}.{payload_b64}".encode()
 
     # Sign
-    signature = HMACAlgorithm.sign(data=signing_input, key=hmac_jwk, alg="HS256")
+    signature = HMACAlgorithm.sign(
+        data=signing_input, key=hmac_jwk, alg="HS256"
+    )
     assert isinstance(signature, bytes)
 
     # Verify
@@ -38,7 +43,10 @@ def test_hmac_sign_verify(hmac_jwk: dict | bytes):
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
     assert not HMACAlgorithm.verify(
-        data=signing_input, signature=invalid_signature, key=hmac_jwk, alg="HS256"
+        data=signing_input,
+        signature=invalid_signature,
+        key=hmac_jwk,
+        alg="HS256",
     )
 
 
@@ -54,7 +62,9 @@ def test_hmac_all_algorithms(hmac_jwk: dict | bytes):
 
     for alg in ["HS256", "HS384", "HS512"]:
         hmac_jwk["alg"] = alg
-        signature = HMACAlgorithm.sign(data=signing_input, key=hmac_jwk, alg=alg)
+        signature = HMACAlgorithm.sign(
+            data=signing_input, key=hmac_jwk, alg=alg
+        )
         assert HMACAlgorithm.verify(
             data=signing_input, signature=signature, key=hmac_jwk, alg=alg
         )
