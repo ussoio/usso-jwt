@@ -87,3 +87,55 @@ def test_no_key(test_token: str):
             token=test_token,
         )
         jwt_obj.verify()
+
+
+def test_is_temporally_valid_true(
+    test_token: str, test_key: algorithms.AbstractKey
+):
+    jwt_obj = schemas.JWT(
+        token=test_token,
+        config=schemas.JWTConfig(key=test_key.jwk()),
+    )
+    assert jwt_obj.is_temporally_valid() is True
+
+
+def test_is_temporally_valid_false_missing_claims(
+    test_header: dict, test_key: algorithms.AbstractKey
+):
+    # Payload missing temporal claims
+    payload = {"sub": "user1", "name": "Test User"}
+    token = sign.generate_jwt(
+        header=test_header,
+        payload=payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    jwt_obj = schemas.JWT(
+        token=token,
+        config=schemas.JWTConfig(key=test_key.jwk()),
+    )
+    assert jwt_obj.is_temporally_valid()
+
+
+def test_is_temporally_valid_false_invalid_claims(
+    test_header: dict, test_key: algorithms.AbstractKey
+):
+    # Payload with expired exp claim
+    import time
+
+    payload = {
+        "sub": "user1",
+        "name": "Test User",
+        "exp": int(time.time()) - 100,
+    }
+    token = sign.generate_jwt(
+        header=test_header,
+        payload=payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    jwt_obj = schemas.JWT(
+        token=token,
+        config=schemas.JWTConfig(key=test_key.jwk()),
+    )
+    assert jwt_obj.is_temporally_valid() is False

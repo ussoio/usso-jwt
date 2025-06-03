@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from .config import JWTConfig
 from .enums import Algorithm
-from .verify import extract_jwt_parts, verify_jwt
+from .verify import extract_jwt_parts, verify_jwt, verify_temporal_claims
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -65,6 +65,16 @@ class JWT(BaseModel):
     @property
     def signing_input(self) -> bytes:
         return self._parts[3]
+
+    def is_temporally_valid(self, *, raise_exception: bool = False) -> bool:
+        try:
+            if verify_temporal_claims(payload=self.unverified_payload):
+                return True
+            return False
+        except Exception as e:
+            if raise_exception:
+                raise e
+            return False
 
     def verify(self, expected_acr: str | list[str] | None = None) -> bool:
         return verify_jwt(
