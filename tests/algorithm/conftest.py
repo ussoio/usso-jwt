@@ -1,6 +1,9 @@
 """Shared pytest fixtures for JWT testing."""
 
+import hashlib
+
 import pytest
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
 from src.usso_jwt.utils import b64url_encode
@@ -20,6 +23,7 @@ def hmac_jwk(hmac_key: bytes) -> dict:
         "k": b64url_encode(hmac_key),
         "alg": "HS256",
         "use": "sig",
+        "kid": hashlib.sha256(hmac_key).hexdigest(),
     }
 
 
@@ -36,6 +40,10 @@ def rsa_private_key() -> rsa.RSAPrivateKey:
 def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict:
     """Generate a RSA JWK."""
     numbers = rsa_private_key.private_numbers()
+    der_public_key = rsa_private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
     return {
         "kty": "RSA",
         "alg": "RS256",
@@ -47,6 +55,7 @@ def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict:
         "dp": b64url_encode(numbers.dmp1.to_bytes(128, "big")),
         "dq": b64url_encode(numbers.dmq1.to_bytes(128, "big")),
         "qi": b64url_encode(numbers.iqmp.to_bytes(128, "big")),
+        "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
 
@@ -117,6 +126,10 @@ def ecdsa_jwk(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
 def ecdsa_jwk_256(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
     """Generate a ECDSA JWK for P-256 curve."""
     numbers = ecdsa_private_key.private_numbers()
+    der_public_key = ecdsa_private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
     return {
         "kty": "EC",
         "alg": "ES256",
@@ -124,6 +137,7 @@ def ecdsa_jwk_256(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(32, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(32, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(32, "big")),
+        "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
 
@@ -132,6 +146,11 @@ def ecdsa_jwk_384() -> dict:
     """Generate a ECDSA JWK for P-384 curve."""
     private_key = ec.generate_private_key(ec.SECP384R1())
     numbers = private_key.private_numbers()
+    der_public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
     return {
         "kty": "EC",
         "alg": "ES384",
@@ -139,6 +158,7 @@ def ecdsa_jwk_384() -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(48, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(48, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(48, "big")),
+        "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
 
@@ -147,6 +167,10 @@ def ecdsa_jwk_512() -> dict:
     """Generate a ECDSA JWK for P-521 curve."""
     private_key = ec.generate_private_key(ec.SECP521R1())
     numbers = private_key.private_numbers()
+    der_public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
     return {
         "kty": "EC",
         "alg": "ES512",
@@ -154,6 +178,7 @@ def ecdsa_jwk_512() -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(66, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(66, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(66, "big")),
+        "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
 
@@ -167,6 +192,10 @@ def eddsa_private_key() -> ed25519.Ed25519PrivateKey:
 def eddsa_jwk(eddsa_private_key: ed25519.Ed25519PrivateKey) -> dict:
     """Create a JWK for EdDSA key."""
     public_key = eddsa_private_key.public_key()
+    der_public_key = public_key.public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
     return {
         "kty": "OKP",
         "crv": "Ed25519",
@@ -174,4 +203,5 @@ def eddsa_jwk(eddsa_private_key: ed25519.Ed25519PrivateKey) -> dict:
         "d": b64url_encode(eddsa_private_key.private_bytes_raw()),
         "alg": "EdDSA",
         "use": "sig",
+        "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
