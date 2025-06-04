@@ -25,3 +25,22 @@ class Algorithm(StrEnum):
     # EdDSA with SHA-2
     EdDSA = "EDDSA"  # EdDSA with SHA-512
     Ed25519 = "ED25519"  # EdDSA with SHA-512
+
+    @property
+    def kty(self) -> str:
+        return {
+            Algorithm.HS256: "oct",
+            Algorithm.HS384: "oct",
+            Algorithm.HS512: "oct",
+            Algorithm.RS256: "RSA",
+            Algorithm.RS384: "RSA",
+            Algorithm.RS512: "RSA",
+            Algorithm.ES256: "EC",
+            Algorithm.ES384: "EC",
+            Algorithm.ES512: "EC",
+            Algorithm.PS256: "RSA",
+            Algorithm.PS384: "RSA",
+            Algorithm.PS512: "RSA",
+            Algorithm.EdDSA: "OKP",
+            Algorithm.Ed25519: "OKP",
+        }[self]

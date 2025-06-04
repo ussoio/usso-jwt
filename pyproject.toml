@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso-jwt"
-version = "0.1.9"
+version = "0.1.10"
 description = "A simple and lightweight Python package for handling JWT (JSON Web Token) operations with USSO (Unified Single Sign-On)."
 readme = "README.md"
 requires-python = ">=3.9"
