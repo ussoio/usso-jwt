@@ -229,7 +229,7 @@ class RSAKey(AbstractKey):
         key = super().load_der(key, password)
         return RSAKey(key=key, algorithm=algorithm)
 
-    def jwk(self) -> dict:
+    def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
         public_key = self.key.public_key()
         return {
@@ -247,6 +247,7 @@ class RSAKey(AbstractKey):
                     "big",
                 )
             ),
+            "kid": kid or self.kid,
         }
 
     def public_key(self) -> rsa.RSAPublicKey:

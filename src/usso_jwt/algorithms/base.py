@@ -19,29 +19,19 @@ def convert_key_to_jwk(key: bytes) -> dict:
             "k": b64url_encode(key),
         }
 
-    public_key = serialization.load_pem_public_key(
-        key, backend=default_backend()
-    )
+    public_key = serialization.load_pem_public_key(key, backend=default_backend())
     if isinstance(public_key, RSAPublicKey):
         return {
             "kty": "RSA",
-            "n": b64url_encode(
-                public_key.public_numbers().n.to_bytes(256, "big")
-            ),
-            "e": b64url_encode(
-                public_key.public_numbers().e.to_bytes(256, "big")
-            ),
+            "n": b64url_encode(public_key.public_numbers().n.to_bytes(256, "big")),
+            "e": b64url_encode(public_key.public_numbers().e.to_bytes(256, "big")),
         }
     elif isinstance(public_key, EllipticCurvePublicKey):
         return {
             "kty": "EC",
             "crv": public_key.curve.name,
-            "x": b64url_encode(
-                public_key.public_numbers().x.to_bytes(256, "big")
-            ),
-            "y": b64url_encode(
-                public_key.public_numbers().y.to_bytes(256, "big")
-            ),
+            "x": b64url_encode(public_key.public_numbers().x.to_bytes(256, "big")),
+            "y": b64url_encode(public_key.public_numbers().y.to_bytes(256, "big")),
         }
     elif isinstance(public_key, Ed25519PublicKey):
         return {
@@ -120,27 +110,21 @@ class AbstractKey(ABC):
         """Load a key from JWK dict."""
 
     @classmethod
-    def load_pem(
-        cls, key: bytes, password: bytes | None = None
-    ) -> "AbstractKey":
+    def load_pem(cls, key: bytes, password: bytes | None = None) -> "AbstractKey":
         """Load a key from PEM."""
         return serialization.load_pem_private_key(
             key, password=password, backend=default_backend()
         )
 
     @classmethod
-    def load_der(
-        cls, key: bytes, password: bytes | None = None
-    ) -> "AbstractKey":
+    def load_der(cls, key: bytes, password: bytes | None = None) -> "AbstractKey":
         """Load a key from DER."""
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
         )
 
     @classmethod
-    def load(
-        cls, key: dict | bytes, password: bytes | None = None
-    ) -> "AbstractKey":
+    def load(cls, key: dict | bytes, password: bytes | None = None) -> "AbstractKey":
         """Load a key from JWK dict or PEM."""
         if isinstance(key, dict):
             return cls.load_jwk(key)
@@ -154,7 +138,7 @@ class AbstractKey(ABC):
         """Get the public key."""
 
     @abstractmethod
-    def jwk(self) -> dict:
+    def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
 
     def private_pem(self, password: bytes | None = None) -> bytes:

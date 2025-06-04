@@ -159,7 +159,7 @@ class EdDSAKey(AbstractKey):
         key = super().load_der(key, password)
         return EdDSAKey(key=key, algorithm=algorithm)
 
-    def jwk(self) -> dict:
+    def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
         public_key = self.key.public_key()
         return {
@@ -168,6 +168,7 @@ class EdDSAKey(AbstractKey):
             "x": b64url_encode(public_key.public_bytes_raw()),
             "alg": "EdDSA",
             "use": "sig",
+            "kid": kid or self.kid,
         }
 
     def public_key(self) -> ed25519.Ed25519PublicKey:

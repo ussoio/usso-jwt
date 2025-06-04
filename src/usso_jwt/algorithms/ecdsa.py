@@ -214,7 +214,7 @@ class ECDSAKey(AbstractKey):
         key = super().load_der(key, password)
         return ECDSAKey(key=key, algorithm=algorithm)
 
-    def jwk(self) -> dict:
+    def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
         public_key = self.key.public_key()
         CURVE_NAME_TO_JWK_CRV = {
@@ -236,6 +236,7 @@ class ECDSAKey(AbstractKey):
                     public_key.curve.key_size // 8, "big"
                 )
             ),
+            "kid": kid or self.kid,
         }
 
     def public_key(self) -> ec.EllipticCurvePublicKey:

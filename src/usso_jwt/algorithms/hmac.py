@@ -167,12 +167,13 @@ class HMACKey(AbstractKey):
         return self.key
 
     @property
-    def jwk(self) -> dict:
+    def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
         return {  # type: ignore
             "kty": "oct",
             "alg": self.algorithm,
             "k": b64url_encode(self.key),
+            "kid": kid or self.kid,
         }
 
     @property
