@@ -95,10 +95,24 @@ class KeyAlgorithm(ABC):
 class AbstractKey(ABC):
     """Abstract base class for keys."""
 
+    @property
+    @abstractmethod
+    def SUPPORTED_ALGORITHMS(self) -> set[str]:
+        """Set of supported algorithms for this implementation."""
+
     @classmethod
     @abstractmethod
     def generate(cls, **kwargs) -> "AbstractKey":
         """Generate a key."""
+
+    @classmethod
+    def generate_algorithm(cls, alg: str, **kwargs) -> "AbstractKey":
+        """Generate a random key for the given algorithm."""
+        for child in cls.__subclasses__():
+            if alg in child.SUPPORTED_ALGORITHMS:
+                return child.generate(**kwargs)
+
+        raise ValueError(f"Unsupported algorithm: {alg}")
 
     @classmethod
     @abstractmethod

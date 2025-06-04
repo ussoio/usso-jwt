@@ -140,8 +140,17 @@ class ECDSAAlgorithm(KeyAlgorithm):
 class ECDSAKey(AbstractKey):
     """ECDSA key implementation."""
 
+    SUPPORTED_ALGORITHMS = {
+        "ES256": ec.SECP256R1,
+        "ES384": ec.SECP384R1,
+        "ES512": ec.SECP521R1,
+    }
+
     def __init__(
-        self, *, key: ec.EllipticCurvePrivateKey, algorithm: str = "ES256"
+        self,
+        *,
+        key: ec.EllipticCurvePrivateKey,
+        algorithm: str = "ES256",
     ):
         self.key = key
         self.algorithm = algorithm

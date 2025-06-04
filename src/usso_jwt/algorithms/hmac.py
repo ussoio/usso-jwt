@@ -108,6 +108,12 @@ class HMACAlgorithm(KeyAlgorithm):
 class HMACKey(AbstractKey):
     """HMAC key implementation."""
 
+    SUPPORTED_ALGORITHMS = {
+        "HS256": hashes.SHA256,
+        "HS384": hashes.SHA384,
+        "HS512": hashes.SHA512,
+    }
+
     def __init__(self, *, key: bytes, algorithm: str = "HS256"):
         self.key = key
         self.algorithm = algorithm

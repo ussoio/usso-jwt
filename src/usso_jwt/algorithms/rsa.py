@@ -156,6 +156,15 @@ class RSAAlgorithm(KeyAlgorithm):
 class RSAKey(AbstractKey):
     """RSA key implementation."""
 
+    SUPPORTED_ALGORITHMS = {
+        "RS256": hashes.SHA256,
+        "RS384": hashes.SHA384,
+        "RS512": hashes.SHA512,
+        "PS256": hashes.SHA256,
+        "PS384": hashes.SHA384,
+        "PS512": hashes.SHA512,
+    }
+
     def __init__(self, *, key: rsa.RSAPrivateKey, algorithm: str = "RS256"):
         self.key: rsa.RSAPrivateKey = key
         self.algorithm = algorithm

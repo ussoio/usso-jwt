@@ -107,6 +107,8 @@ class EdDSAAlgorithm(KeyAlgorithm):
 class EdDSAKey(AbstractKey):
     """EdDSA key implementation."""
 
+    SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA", "Ed25519", "ED25519"}
+
     def __init__(
         self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"
     ):
