@@ -26,7 +26,7 @@ def test_valid_payload() -> dict:
         "iss": "test",
         "iat": now - 600,
         "exp": now + 600,
-        "acr": "pass"
+        "acr": "pass",
     }
 
 
