@@ -110,7 +110,24 @@ def test_invalid_audience(
         )
 
 
-def test_invalid_acr_audience(
+def test_invalid_token_type(
+    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+):
+    jwt = sign.generate_jwt(
+        header=test_header,
+        payload=test_valid_payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    with pytest.raises(exceptions.JWTInvalidTokenTypeError):
+        verify.verify_jwt(
+            token=jwt,
+            jwk=test_key.jwk(),
+            expected_token_type="refresh",
+        )
+
+
+def test_invalid_acr(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
 ):
     jwt = sign.generate_jwt(
@@ -123,7 +140,7 @@ def test_invalid_acr_audience(
         verify.verify_jwt(
             token=jwt,
             jwk=test_key.jwk(),
-            expected_acr="refresh",
+            expected_acr="mfa",
         )
 
 

@@ -13,6 +13,7 @@ from .exceptions import (
     JWTInvalidFormatError,
     JWTInvalidIssuerError,
     JWTInvalidSignatureError,
+    JWTInvalidTokenTypeError,
     JWTIssuedInFutureError,
     JWTMissingAudienceError,
     JWTNotValidYetError,
@@ -58,6 +59,7 @@ def verify_claims(
     expected_audience: str | list[str] | None = None,
     expected_acr: str | list[str] | None = None,
     expected_issuer: str | list[str] | None = None,
+    expected_token_type: str | list[str] | None = None,
 ) -> bool:
     """
     Verify additional JWT claims like audience, acr, and issuer if they
@@ -65,14 +67,17 @@ def verify_claims(
 
     Args:
         payload: The JWT payload
-        expected_audience: The expected audience value(s) to validate against.
-                           Can be a single string or list of strings.
-                           If provided, the token MUST have an aud claim
-                           that matches one of the expected values.
-        expected_acr:      The expected acr value(s) to validate against.
-                           Can be a single string or list of strings.
-        expected_issuer:   The expected issuer value(s) to validate against.
-                           Can be a single string or list of strings.
+        expected_audience:  The expected audience value(s) to validate against.
+                            Can be a single string or list of strings.
+                            If provided, the token MUST have an aud claim
+                            that matches one of the expected values.
+        expected_acr:       The expected acr value(s) to validate against.
+                            Can be a single string or list of strings.
+        expected_issuer:    The expected issuer value(s) to validate against.
+                            Can be a single string or list of strings.
+        expected_token_type: The expected token type value(s)
+                            to validate against.
+                            Can be a single string or list of strings.
 
     Returns:
         bool: True if all claims are valid
@@ -83,6 +88,7 @@ def verify_claims(
                                  and expected_audience is provided
         JWTInvalidACRError: If the acr claim is invalid
         JWTInvalidIssuerError: If the issuer claim is invalid
+        JWTInvalidTokenTypeError: If the token type claim is invalid
     """
     # Handle audience validation
     if expected_audience is not None:
@@ -107,6 +113,15 @@ def verify_claims(
         if payload["iss"] not in expected_issuer:
             raise JWTInvalidIssuerError()
 
+    # Handle token type validation
+    if "token_type" in payload and expected_token_type is not None:
+        if isinstance(expected_token_type, str):
+            expected_token_type = [expected_token_type]
+        if payload["token_type"] not in expected_token_type:
+            raise JWTInvalidTokenTypeError(
+                expected_token_type=expected_token_type,
+                provided_token_type=payload["token_type"],
+            )
     return True
 
 
@@ -152,6 +167,7 @@ def verify_jwt(
     expected_audience: str | list[str] | None = None,
     expected_acr: str | list[str] | None = None,
     expected_issuer: str | list[str] | None = None,
+    expected_token_type: str | list[str] | None = None,
 ) -> bool:
     header, payload, signature, signing_input = extract_jwt_parts(token)
     if jwk is None:
@@ -168,6 +184,7 @@ def verify_jwt(
         expected_audience=expected_audience,
         expected_acr=expected_acr,
         expected_issuer=expected_issuer,
+        expected_token_type=expected_token_type,
     )
 
     return True

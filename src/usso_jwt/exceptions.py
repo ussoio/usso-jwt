@@ -65,6 +65,27 @@ class JWTInvalidAudienceError(JWTError):
         super().__init__(self.message)
 
 
+class JWTInvalidTokenTypeError(JWTError):
+    """Raised when a JWT's token type claim is invalid."""
+
+    def __init__(
+        self,
+        expected_token_type: str | None = None,
+        provided_token_type: str | None = None,
+    ):
+        self.message = "JWT token type claim is invalid"
+        if expected_token_type and provided_token_type:
+            self.message += (
+                f" (expected: {expected_token_type},"
+                f" provided: {provided_token_type})"
+            )
+        elif expected_token_type:
+            self.message += f" (expected: {expected_token_type})"
+        elif provided_token_type:
+            self.message += f" (provided: {provided_token_type})"
+        super().__init__(self.message)
+
+
 class JWTInvalidACRError(JWTError):
     """Raised when a JWT's acr claim is invalid."""
 

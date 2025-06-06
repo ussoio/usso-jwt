@@ -76,11 +76,16 @@ class JWT(BaseModel):
                 raise e
             return False
 
-    def verify(self, expected_acr: str | list[str] | None = None) -> bool:
+    def verify(
+        self,
+        expected_acr: str | list[str] | None = None,
+        expected_token_type: str | list[str] | None = None,
+    ) -> bool:
         return verify_jwt(
             token=self.token,
             jwk=self.config.key,
             expected_audience=self.config.audience,
             expected_issuer=self.config.issuer,
             expected_acr=expected_acr,
+            expected_token_type=expected_token_type,
         )

@@ -19,13 +19,14 @@ def test_valid_payload() -> dict:
     """Create a test JWT payload."""
     now = int(time.time())
     return {
-        "acr": "access",
+        "token_type": "access",
         "sub": "1234567890",
         "name": "John Doe",
         "aud": "test",
         "iss": "test",
         "iat": now - 600,
         "exp": now + 600,
+        "acr": "pass"
     }
 
 
