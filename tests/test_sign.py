@@ -11,6 +11,32 @@ def test_header(test_key: AbstractKey) -> dict:
     return sign.create_jwt_header(alg=test_key.algorithm, kid=test_key.kid)
 
 
+def test_private_pem(
+    test_key: AbstractKey, test_header: dict, test_valid_payload: dict
+):
+    pem = test_key.private_pem(password=b"123456")
+    key = AbstractKey.load_pem(pem, password=b"123456")
+    assert pem
+    signature = sign.sign_jwt_parts(
+        header=test_header,
+        payload=test_valid_payload,
+        key=key,
+        alg=test_key.algorithm,
+    )
+    assert signature is not None
+
+    header_b64 = b64url_encode(json.dumps(test_header).encode())
+    payload_b64 = b64url_encode(json.dumps(test_valid_payload).encode())
+    signing_input = f"{header_b64}.{payload_b64}".encode()
+
+    assert verify.verify_signature(
+        alg=test_key.algorithm,
+        key=test_key.public_der(),
+        signature=signature,
+        data=signing_input,
+    )
+
+
 def test_sign_verify(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
 ):

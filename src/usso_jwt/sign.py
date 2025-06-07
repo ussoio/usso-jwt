@@ -14,8 +14,7 @@ def create_jwt_header(alg: str, kid: str | None = None, **kwargs) -> dict:
 
 
 def sign_jwt_parts(
-    header: dict,
-    payload: dict,
+    *,
     key: (
         dict
         | bytes
@@ -24,13 +23,21 @@ def sign_jwt_parts(
         | ed25519.Ed25519PrivateKey
     ),
     alg: str,
+    signing_input: str | bytes | None = None,
+    header: dict | None = None,
+    payload: dict | None = None,
     password: bytes | None = None,
 ) -> str:
     """Sign JWT parts using the specified algorithm."""
     # Prepare signing input
-    header_b64 = b64url_encode(json.dumps(header).encode())
-    payload_b64 = b64url_encode(json.dumps(payload).encode())
-    signing_input = f"{header_b64}.{payload_b64}".encode()
+    if header is None and payload is None and signing_input is None:
+        raise ValueError(
+            "Either header, payload, or signing_input must be provided",
+        )
+    if signing_input is None:
+        header_b64 = b64url_encode(json.dumps(header).encode())
+        payload_b64 = b64url_encode(json.dumps(payload).encode())
+        signing_input = f"{header_b64}.{payload_b64}".encode()
 
     # Get algorithm and sign
     algorithm = get_algorithm(alg)
@@ -52,8 +59,14 @@ def generate_jwt(
 ) -> str:
     header_b64 = b64url_encode(json.dumps(header).encode())
     payload_b64 = b64url_encode(json.dumps(payload).encode())
-    signature = sign_jwt_parts(header, payload, key, alg, password)
+    signing_input = f"{header_b64}.{payload_b64}"
+    signature = sign_jwt_parts(
+        key=key,
+        alg=alg,
+        signing_input=signing_input.encode(),
+        password=password,
+    )
 
     # Return complete JWT
     signature_b64 = b64url_encode(signature)
-    return f"{header_b64}.{payload_b64}.{signature_b64}"
+    return f"{signing_input}.{signature_b64}"
