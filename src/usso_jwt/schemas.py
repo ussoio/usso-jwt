@@ -14,6 +14,9 @@ class JWT(BaseModel):
     token: str
     config: JWTConfig = Field(default_factory=JWTConfig)
 
+    def __str__(self) -> str:
+        return self.token
+
     def __init__(
         self,
         *,
