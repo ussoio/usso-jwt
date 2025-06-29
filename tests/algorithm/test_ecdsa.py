@@ -18,14 +18,40 @@ def test_ecdsa_load_key_from_pem(
     ecdsa_private_key: ec.EllipticCurvePrivateKey,
 ):
     """Test loading ECDSA key from PEM."""
+    pem = ecdsa_private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
+    )
+    key = ECDSAKey.load_pem(pem, algorithm="ES256", password=b"password")
+    assert key.jwk()["alg"] == "ES256"
+    assert key.jwk()["kty"] == "EC"
+    assert key.jwk()["crv"] == "P-256"
+    assert key.jwk()["x"] is not None
+    assert key.jwk()["y"] is not None
+    assert key.jwk().get("d") is None
+
+
+def test_ecdsa_load_key_from_der(
+    ecdsa_private_key: ec.EllipticCurvePrivateKey,
+):
+    """Test loading ECDSA key from DER."""
     der = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
     )
-    key = ECDSAAlgorithm.load_key(der, "ES256")
-    assert hasattr(key, "sign")
-    assert hasattr(key, "private_bytes")
+    key = ECDSAKey.load_der(der, algorithm="ES256", password=b"password")
+    assert key.jwk()["alg"] == "ES256"
+    assert key.jwk()["kty"] == "EC"
+    assert key.jwk()["crv"] == "P-256"
+    assert key.jwk()["x"] is not None
+    assert key.jwk()["y"] is not None
+    assert key.jwk().get("d") is None
 
 
 def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):

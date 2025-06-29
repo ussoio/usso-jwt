@@ -86,6 +86,23 @@ def test_rsa_key_load_jwk(rsa_jwk: dict | bytes):
 
 def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey):
     """Test RSA key loading from PEM."""
+    pem = rsa_private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
+    )
+    key = RSAKey.load_pem(pem, algorithm="RS256", password=b"password")
+    assert key.jwk()["alg"] == "RS256"
+    assert key.jwk()["kty"] == "RSA"
+    assert key.jwk()["e"] is not None
+    assert key.jwk()["n"] is not None
+    assert key.jwk().get("d") is None
+
+
+def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey):
+    """Test RSA key loading from DER."""
     der = rsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,

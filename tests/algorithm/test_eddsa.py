@@ -72,6 +72,23 @@ def test_eddsa_key_load_jwk(eddsa_jwk: dict | bytes):
 
 def test_eddsa_key_load_pem(eddsa_private_key: ed25519.Ed25519PrivateKey):
     """Test EdDSA key loading from PEM."""
+    pem = eddsa_private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            b"password"
+        ),
+    )
+    key = EdDSAKey.load_pem(pem, algorithm="EdDSA", password=b"password")
+    assert key.jwk()["alg"] == "EdDSA"
+    assert key.jwk()["crv"] == "Ed25519"
+    assert key.jwk()["kty"] == "OKP"
+    assert key.jwk()["x"] is not None
+    assert key.jwk().get("d") is None
+
+
+def test_eddsa_key_load_der(eddsa_private_key: ed25519.Ed25519PrivateKey):
+    """Test EdDSA key loading from DER."""
     der = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
