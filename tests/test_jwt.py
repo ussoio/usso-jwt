@@ -98,7 +98,7 @@ def test_is_temporally_valid_true(
     )
     assert jwt_obj.is_temporally_valid() is True
     assert jwt_obj.is_expired is False
-    assert f'{jwt_obj}'
+    assert f"{jwt_obj}"
 
 
 def test_is_temporally_valid_false_missing_claims(
