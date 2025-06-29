@@ -69,6 +69,10 @@ class JWT(BaseModel):
     def signing_input(self) -> bytes:
         return self._parts[3]
 
+    @property
+    def is_expired(self) -> bool:
+        return not self.is_temporally_valid(raise_exception=True)
+
     def is_temporally_valid(self, *, raise_exception: bool = False) -> bool:
         try:
             if verify_temporal_claims(payload=self.unverified_payload):
