@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import httpx
@@ -35,7 +36,9 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
 def fetch_jwk(*, jwks_url: str, kid: str) -> dict | None:
-    jwks = httpx.get(jwks_url).json()
+    resp = httpx.get(jwks_url, proxy=os.getenv("PROXY"))
+    resp.raise_for_status()
+    jwks = resp.json()
     for key in jwks["keys"]:
         if key["kid"] == kid:
             return key
