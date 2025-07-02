@@ -91,7 +91,7 @@ class JWT(BaseModel):
         return verify_jwt(
             token=self.token,
             jwk=self.config.key,
-            jwks_url=self.config.jwk_url,
+            jwks_url=self.config.jwks_url,
             kid=self.unverified_header.get("kid"),
             expected_audience=self.config.audience,
             expected_issuer=self.config.issuer,

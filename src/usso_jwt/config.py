@@ -10,7 +10,7 @@ from .enums import Algorithm
 class JWTConfig(BaseModel):
     """Configuration for JWT processing."""
 
-    jwk_url: str | None = Field(
+    jwks_url: str | None = Field(
         default=None,
         description="URL to fetch JWK from. Required if key is not provided.",
     )
@@ -52,8 +52,8 @@ class JWTConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_config(cls, data: "JWTConfig") -> "JWTConfig":
-        if not data.jwk_url and not data.key:
-            raise ValueError("Either jwk_url or key must be provided")
+        if not data.jwks_url and not data.key:
+            raise ValueError("Either jwks_url or key must be provided")
         return data
 
     @field_validator("key", mode="after")
