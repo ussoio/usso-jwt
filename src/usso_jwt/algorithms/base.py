@@ -53,6 +53,11 @@ def convert_key_to_jwk(key: bytes) -> dict:
         raise ValueError("Unsupported algorithm")
 
 
+def convert_jwk_to_pem(key: dict) -> bytes:
+    key = AbstractKey.load_jwk(key)
+    return key.public_pem()
+
+
 class KeyAlgorithm(ABC):
     """Abstract base class for JWT algorithms."""
 
@@ -115,9 +120,14 @@ class AbstractKey(ABC):
         raise ValueError(f"Unsupported algorithm: {alg}")
 
     @classmethod
-    @abstractmethod
     def load_jwk(cls, key: dict) -> "AbstractKey":
         """Load a key from JWK dict."""
+        alg = key.get("alg")
+        if not alg:
+            raise ValueError("Missing algorithm in JWK")
+        for child in cls.__subclasses__():
+            if alg in child.SUPPORTED_ALGORITHMS:
+                return child.load_jwk(key)
 
     @classmethod
     def load_pem(

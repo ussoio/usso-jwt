@@ -1,4 +1,9 @@
-from .base import AbstractKey, KeyAlgorithm
+from .base import (
+    AbstractKey,
+    KeyAlgorithm,
+    convert_jwk_to_pem,
+    convert_key_to_jwk,
+)
 from .ecdsa import ECDSAAlgorithm, ECDSAKey
 from .eddsa import EdDSAAlgorithm, EdDSAKey
 from .hmac import HMACAlgorithm, HMACKey
@@ -29,6 +34,8 @@ def get_algorithm(alg: str) -> type[KeyAlgorithm]:
 __all__ = [
     "KeyAlgorithm",
     "AbstractKey",
+    "convert_jwk_to_pem",
+    "convert_key_to_jwk",
     "HMACKey",
     "RSAKey",
     "ECDSAKey",
