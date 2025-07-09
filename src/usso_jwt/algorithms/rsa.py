@@ -242,11 +242,16 @@ class RSAKey(AbstractKey):
                 )
             ),
             "e": b64url_encode(
+                # public_key.public_numbers().e.to_bytes(
+                #     public_key.key_size // 8,
+                #     "big",
+                # )
                 public_key.public_numbers().e.to_bytes(
-                    public_key.key_size // 8,
+                    (public_key.public_numbers().e.bit_length() + 7) // 8,
                     "big",
                 )
             ),
+            "use": "sig",
             "kid": kid or self.kid,
         }
 

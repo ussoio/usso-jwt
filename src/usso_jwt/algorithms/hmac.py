@@ -173,6 +173,7 @@ class HMACKey(AbstractKey):
             "kty": "oct",
             "alg": self.algorithm,
             "k": b64url_encode(self.key),
+            "use": "sig",
             "kid": kid or self.kid,
         }
 

@@ -236,6 +236,7 @@ class ECDSAKey(AbstractKey):
                     public_key.curve.key_size // 8, "big"
                 )
             ),
+            "use": "sig",
             "kid": kid or self.kid,
         }
 

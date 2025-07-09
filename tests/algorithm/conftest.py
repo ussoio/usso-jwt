@@ -48,13 +48,14 @@ def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict:
         "kty": "RSA",
         "alg": "RS256",
         "n": b64url_encode(numbers.public_numbers.n.to_bytes(256, "big")),
-        "e": b64url_encode(numbers.public_numbers.e.to_bytes(256, "big")),
+        "e": b64url_encode(numbers.public_numbers.e.to_bytes(3, "big")),
         "d": b64url_encode(numbers.d.to_bytes(256, "big")),
         "p": b64url_encode(numbers.p.to_bytes(128, "big")),
         "q": b64url_encode(numbers.q.to_bytes(128, "big")),
         "dp": b64url_encode(numbers.dmp1.to_bytes(128, "big")),
         "dq": b64url_encode(numbers.dmq1.to_bytes(128, "big")),
         "qi": b64url_encode(numbers.iqmp.to_bytes(128, "big")),
+        "use": "sig",
         "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
@@ -137,6 +138,7 @@ def ecdsa_jwk_256(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(32, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(32, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(32, "big")),
+        "use": "sig",
         "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
@@ -158,6 +160,7 @@ def ecdsa_jwk_384() -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(48, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(48, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(48, "big")),
+        "use": "sig",
         "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
@@ -178,6 +181,7 @@ def ecdsa_jwk_512() -> dict:
         "x": b64url_encode(numbers.public_numbers.x.to_bytes(66, "big")),
         "y": b64url_encode(numbers.public_numbers.y.to_bytes(66, "big")),
         "d": b64url_encode(numbers.private_value.to_bytes(66, "big")),
+        "use": "sig",
         "kid": hashlib.sha256(der_public_key).hexdigest(),
     }
 
