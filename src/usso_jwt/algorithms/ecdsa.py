@@ -39,19 +39,28 @@ class ECDSAAlgorithm(KeyAlgorithm):
         if isinstance(key, ec.EllipticCurvePrivateKey):
             return key
         if isinstance(key, dict):
-            # Load from JWK
-            curve = cls.SUPPORTED_ALGORITHMS[alg]()
-            x = int.from_bytes(b64url_decode(key["x"]), "big")
-            y = int.from_bytes(b64url_decode(key["y"]), "big")
-            d = int.from_bytes(b64url_decode(key["d"]), "big")
-
-            return ec.EllipticCurvePrivateNumbers(
-                d, ec.EllipticCurvePublicNumbers(x, y, curve)
-            ).private_key(default_backend())
+            return cls.load_jwk(key)
+        # Load from PEM
+        if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
+            return serialization.load_pem_private_key(
+                key, password=password, backend=default_backend()
+            )
         # Load from DER
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
         )
+
+    @classmethod
+    def load_jwk(cls, key: dict) -> ec.EllipticCurvePrivateKey:
+        """Load a key from JWK dict."""
+        return ec.EllipticCurvePrivateNumbers(
+            int.from_bytes(b64url_decode(key["d"]), "big"),
+            ec.EllipticCurvePublicNumbers(
+                int.from_bytes(b64url_decode(key["x"]), "big"),
+                int.from_bytes(b64url_decode(key["y"]), "big"),
+                cls.SUPPORTED_ALGORITHMS[key.get("alg", "ES256")](),
+            ),
+        ).private_key(default_backend())
 
     @classmethod
     def sign(

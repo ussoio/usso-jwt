@@ -11,8 +11,9 @@ class EdDSAAlgorithm(KeyAlgorithm):
 
     SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA", "Ed25519", "ED25519"}
 
-    @staticmethod
+    @classmethod
     def load_key(
+        cls,
         key: dict | bytes | ed25519.Ed25519PrivateKey,
         password: bytes | None = None,
     ) -> ed25519.Ed25519PrivateKey:
@@ -28,12 +29,24 @@ class EdDSAAlgorithm(KeyAlgorithm):
         """
         if isinstance(key, ed25519.Ed25519PrivateKey):
             return key
+        # Load from JWK
         if isinstance(key, dict):
-            return ed25519.Ed25519PrivateKey.from_private_bytes(
-                b64url_decode(key["d"])
+            return cls.load_jwk(key)
+        # Load from PEM
+        if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
+            return serialization.load_pem_private_key(
+                key, password=password, backend=default_backend()
             )
+        # Load from DER
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
+        )
+
+    @classmethod
+    def load_jwk(cls, key: dict) -> ed25519.Ed25519PrivateKey:
+        """Load a key from JWK dict."""
+        return ed25519.Ed25519PrivateKey.from_private_bytes(
+            b64url_decode(key["d"])
         )
 
     @classmethod

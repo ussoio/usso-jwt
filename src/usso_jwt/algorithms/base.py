@@ -66,9 +66,9 @@ class KeyAlgorithm(ABC):
     def SUPPORTED_ALGORITHMS(self) -> set[str]:
         """Set of supported algorithms for this implementation."""
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def load_key(key: dict | bytes, password: bytes | None = None):
+    def load_key(cls, key: dict | bytes, password: bytes | None = None):
         """Load key from JWK dict or raw bytes."""
 
     @classmethod

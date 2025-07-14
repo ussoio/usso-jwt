@@ -19,9 +19,11 @@ class RSAAlgorithm(KeyAlgorithm):
         "PS512": hashes.SHA512,
     }
 
-    @staticmethod
+    @classmethod
     def load_key(
-        key: dict | bytes | rsa.RSAPrivateKey, password: bytes | None = None
+        cls,
+        key: dict | bytes | rsa.RSAPrivateKey,
+        password: bytes | None = None,
     ) -> rsa.RSAPrivateKey:
         """
         Load RSA private key from JWK dict or PEM bytes.
@@ -36,24 +38,33 @@ class RSAAlgorithm(KeyAlgorithm):
         if isinstance(key, rsa.RSAPrivateKey):
             return key
         if isinstance(key, dict):
-            # Load from JWK
-            n = int.from_bytes(b64url_decode(key["n"]), "big")
-            e = int.from_bytes(b64url_decode(key["e"]), "big")
-            d = int.from_bytes(b64url_decode(key["d"]), "big")
-            return rsa.RSAPrivateNumbers(
-                p=int.from_bytes(b64url_decode(key["p"]), "big"),
-                q=int.from_bytes(b64url_decode(key["q"]), "big"),
-                d=d,
-                dmp1=int.from_bytes(b64url_decode(key["dp"]), "big"),
-                dmq1=int.from_bytes(b64url_decode(key["dq"]), "big"),
-                iqmp=int.from_bytes(b64url_decode(key["qi"]), "big"),
-                public_numbers=rsa.RSAPublicNumbers(e, n),
-            ).private_key(default_backend())
+            return cls.load_jwk(key)
 
+        # Load from PEM
+        if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
+            return serialization.load_pem_private_key(
+                key, password=password, backend=default_backend()
+            )
         # Load from DER
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
         )
+
+    @classmethod
+    def load_jwk(cls, key: dict) -> rsa.RSAPrivateKey:
+        """Load a key from JWK dict."""
+        return rsa.RSAPrivateNumbers(
+            p=int.from_bytes(b64url_decode(key["p"]), "big"),
+            q=int.from_bytes(b64url_decode(key["q"]), "big"),
+            d=int.from_bytes(b64url_decode(key["d"]), "big"),
+            dmp1=int.from_bytes(b64url_decode(key["dp"]), "big"),
+            dmq1=int.from_bytes(b64url_decode(key["dq"]), "big"),
+            iqmp=int.from_bytes(b64url_decode(key["qi"]), "big"),
+            public_numbers=rsa.RSAPublicNumbers(
+                int.from_bytes(b64url_decode(key["e"]), "big"),
+                int.from_bytes(b64url_decode(key["n"]), "big"),
+            ),
+        ).private_key(default_backend())
 
     @classmethod
     def sign(
