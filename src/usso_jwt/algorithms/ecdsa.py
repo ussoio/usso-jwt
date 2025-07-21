@@ -160,7 +160,7 @@ class ECDSAKey(AbstractKey):
         *,
         key: ec.EllipticCurvePrivateKey,
         algorithm: str = "ES256",
-    ):
+    ) -> None:
         self.key = key
         self.algorithm = algorithm
 

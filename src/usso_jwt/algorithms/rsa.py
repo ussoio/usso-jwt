@@ -176,7 +176,9 @@ class RSAKey(AbstractKey):
         "PS512": hashes.SHA512,
     }
 
-    def __init__(self, *, key: rsa.RSAPrivateKey, algorithm: str = "RS256"):
+    def __init__(
+        self, *, key: rsa.RSAPrivateKey, algorithm: str = "RS256"
+    ) -> None:
         self.key: rsa.RSAPrivateKey = key
         self.algorithm = algorithm
 

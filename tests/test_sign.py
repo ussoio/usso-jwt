@@ -13,7 +13,7 @@ def test_header(test_key: AbstractKey) -> dict:
 
 def test_private_pem(
     test_key: AbstractKey, test_header: dict, test_valid_payload: dict
-):
+) -> None:
     pem = test_key.private_pem(password=b"123456")
     key = AbstractKey.load_pem(pem, password=b"123456")
     assert pem
@@ -39,7 +39,7 @@ def test_private_pem(
 
 def test_sign_verify(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     signature = sign.sign_jwt_parts(
         header=test_header,
         payload=test_valid_payload,
@@ -64,7 +64,7 @@ def test_sign_verify(
 
 def test_generate_jwt(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,

@@ -114,7 +114,7 @@ class HMACKey(AbstractKey):
         "HS512": hashes.SHA512,
     }
 
-    def __init__(self, *, key: bytes, algorithm: str = "HS256"):
+    def __init__(self, *, key: bytes, algorithm: str = "HS256") -> None:
         self.key = key
         self.algorithm = algorithm
 

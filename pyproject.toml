@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso-jwt"
-version = "0.2.4"
+version = "0.2.6"
 description = "A simple and lightweight Python package for handling JWT (JSON Web Token) operations with USSO (Unified Single Sign-On)."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -49,7 +49,7 @@ dependencies = [
 "Source" = "https://github.com/ussoio/usso-jwt"
 
 [tool.setuptools]
-package-data = { "usso_jwt" = ["*.dat"] }
+package-data = { "usso_jwt" = ["*.dat", "py.typed"] }
 
 [tool.ruff]
 line-length = 79
@@ -59,7 +59,7 @@ unsafe-fixes = true
 preview = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B"]
+select = ["E", "F", "W", "I", "UP", "B", "T", "C", "ANN"]
 
 [tool.ruff.format]
 quote-style = "double"

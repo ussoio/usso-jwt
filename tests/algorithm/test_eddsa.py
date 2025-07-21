@@ -8,7 +8,7 @@ from src.usso_jwt import schemas, sign
 from src.usso_jwt.algorithms import EdDSAAlgorithm, EdDSAKey
 
 
-def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes):
+def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes) -> None:
     """Test loading EdDSA key from JWK."""
     key = EdDSAAlgorithm.load_key(eddsa_jwk)
     assert hasattr(key, "sign")
@@ -17,7 +17,7 @@ def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes):
 
 def test_eddsa_load_key_from_bytes(
     eddsa_private_key: ed25519.Ed25519PrivateKey,
-):
+) -> None:
     """Test loading EdDSA key from raw bytes."""
     key_bytes = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -29,7 +29,7 @@ def test_eddsa_load_key_from_bytes(
     assert hasattr(key, "private_bytes")
 
 
-def test_eddsa_sign_verify(eddsa_jwk: dict | bytes):
+def test_eddsa_sign_verify(eddsa_jwk: dict | bytes) -> None:
     """Test EdDSA signing and verification."""
     data = b"test"
 
@@ -47,13 +47,13 @@ def test_eddsa_sign_verify(eddsa_jwk: dict | bytes):
     )
 
 
-def test_eddsa_unsupported_algorithm():
+def test_eddsa_unsupported_algorithm() -> None:
     """Test EdDSA with unsupported algorithm."""
     with pytest.raises(ValueError, match="Unsupported EdDSA algorithm: Ed448"):
         EdDSAAlgorithm.sign(data=b"test", key={}, alg="Ed448")
 
 
-def test_eddsa_key_generate():
+def test_eddsa_key_generate() -> None:
     """Test EdDSA key generation."""
     key = EdDSAKey.generate(algorithm="EdDSA")
     assert key.jwk()["alg"] == "EdDSA"
@@ -63,14 +63,16 @@ def test_eddsa_key_generate():
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_load_jwk(eddsa_jwk: dict | bytes):
+def test_eddsa_key_load_jwk(eddsa_jwk: dict | bytes) -> None:
     """Test EdDSA key loading from JWK."""
     key = EdDSAKey.load_jwk(eddsa_jwk)
     for k, v in key.jwk().items():
         assert eddsa_jwk[k] == v
 
 
-def test_eddsa_key_load_pem(eddsa_private_key: ed25519.Ed25519PrivateKey):
+def test_eddsa_key_load_pem(
+    eddsa_private_key: ed25519.Ed25519PrivateKey,
+) -> None:
     """Test EdDSA key loading from PEM."""
     pem = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -87,7 +89,9 @@ def test_eddsa_key_load_pem(eddsa_private_key: ed25519.Ed25519PrivateKey):
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_load_der(eddsa_private_key: ed25519.Ed25519PrivateKey):
+def test_eddsa_key_load_der(
+    eddsa_private_key: ed25519.Ed25519PrivateKey,
+) -> None:
     """Test EdDSA key loading from DER."""
     der = eddsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -104,14 +108,14 @@ def test_eddsa_key_load_der(eddsa_private_key: ed25519.Ed25519PrivateKey):
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_sign_verify(eddsa_jwk: dict | bytes):
+def test_eddsa_key_sign_verify(eddsa_jwk: dict | bytes) -> None:
     """Test EdDSA key signing and verification."""
     key = EdDSAKey.generate(algorithm="EdDSA")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_eddsa_key_type(eddsa_jwk: dict | bytes):
+def test_eddsa_key_type(eddsa_jwk: dict | bytes) -> None:
     """Test EdDSA key type."""
     key = EdDSAKey.load_jwk(eddsa_jwk)
     assert key.type == "EdDSA"
@@ -125,7 +129,7 @@ def test_key() -> EdDSAKey:
 @pytest.fixture
 def test_token(
     test_valid_payload: dict, test_header: dict, test_key: EdDSAKey
-):
+) -> str:
     from src.usso_jwt import sign
 
     jwt = sign.generate_jwt(
@@ -137,7 +141,7 @@ def test_token(
     return jwt
 
 
-def test_pem_key(test_token: str, test_key: EdDSAKey):
+def test_pem_key(test_token: str, test_key: EdDSAKey) -> None:
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.public_pem()),
@@ -145,7 +149,7 @@ def test_pem_key(test_token: str, test_key: EdDSAKey):
     assert jwt_obj.verify()
 
 
-def test_ed25519_sign_verify():
+def test_ed25519_sign_verify() -> None:
     headers = {
         "alg": "Ed25519",
         "typ": "JWT",

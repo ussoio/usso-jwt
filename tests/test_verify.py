@@ -5,7 +5,7 @@ from src.usso_jwt import exceptions, sign, verify
 from src.usso_jwt.algorithms import AbstractKey
 
 
-def test_fetch_jwk():
+def test_fetch_jwk() -> None:
     jwks_url = "https://www.googleapis.com/oauth2/v3/certs"
     jwks = httpx.get(jwks_url).json()
     jwk = jwks["keys"][0]
@@ -18,7 +18,7 @@ def test_fetch_jwk():
     assert fetched_jwk["e"] is not None
 
 
-def test_fetch_failed_jwk():
+def test_fetch_failed_jwk() -> None:
     with pytest.raises(exceptions.JWKNotFoundError):
         verify.fetch_jwk(
             jwks_url="https://www.googleapis.com/oauth2/v3/certs", kid="123"
@@ -27,7 +27,7 @@ def test_fetch_failed_jwk():
 
 def test_invalid_signature(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -41,7 +41,7 @@ def test_invalid_signature(
 
 def test_expired_payload(
     test_expired_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_expired_payload,
@@ -54,7 +54,7 @@ def test_expired_payload(
 
 def test_nbf_future_payload(
     test_future_nbf_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_future_nbf_payload,
@@ -67,7 +67,7 @@ def test_nbf_future_payload(
 
 def test_future_payload(
     test_future_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_future_payload,
@@ -80,7 +80,7 @@ def test_future_payload(
 
 def test_missing_audience(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     payload = test_valid_payload.copy()
     payload.pop("aud", None)
     jwt = sign.generate_jwt(
@@ -97,7 +97,7 @@ def test_missing_audience(
 
 def test_invalid_audience(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -112,7 +112,7 @@ def test_invalid_audience(
 
 def test_invalid_token_type(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -129,7 +129,7 @@ def test_invalid_token_type(
 
 def test_invalid_acr(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -146,7 +146,7 @@ def test_invalid_acr(
 
 def test_invalid_issuer(
     test_valid_payload: dict, test_header: dict, test_key: AbstractKey
-):
+) -> None:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,

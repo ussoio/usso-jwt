@@ -5,7 +5,9 @@ from .algorithms import get_algorithm
 from .utils import b64url_encode
 
 
-def create_jwt_header(alg: str, kid: str | None = None, **kwargs) -> dict:
+def create_jwt_header(
+    alg: str, kid: str | None = None, **kwargs: object
+) -> dict:
     header = {"alg": alg, "typ": "JWT"}
     if kid:
         header["kid"] = kid

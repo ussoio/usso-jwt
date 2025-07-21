@@ -124,7 +124,7 @@ class EdDSAKey(AbstractKey):
 
     def __init__(
         self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"
-    ):
+    ) -> None:
         self.key = key
         self.algorithm = algorithm
 

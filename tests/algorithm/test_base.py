@@ -3,7 +3,7 @@
 from src.usso_jwt.algorithms import AbstractKey, convert_jwk_to_pem
 
 
-def test_load_jwt(rsa_jwk: dict | bytes):
+def test_load_jwt(rsa_jwk: dict | bytes) -> None:
     """Test loading RSA key from PEM."""
 
     key = AbstractKey.load(rsa_jwk)
@@ -14,7 +14,7 @@ def test_load_jwt(rsa_jwk: dict | bytes):
     assert hasattr(key, "private_bytes")
 
 
-def test_jwt_to_pem(rsa_jwk: dict | bytes):
+def test_jwt_to_pem(rsa_jwk: dict | bytes) -> None:
     """Test loading RSA key from PEM."""
 
     key = AbstractKey.load(rsa_jwk)

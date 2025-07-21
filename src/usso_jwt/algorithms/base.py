@@ -68,7 +68,9 @@ class KeyAlgorithm(ABC):
 
     @classmethod
     @abstractmethod
-    def load_key(cls, key: dict | bytes, password: bytes | None = None):
+    def load_key(
+        cls, key: dict | bytes, password: bytes | None = None
+    ) -> dict | bytes:
         """Load key from JWK dict or raw bytes."""
 
     @classmethod
@@ -77,7 +79,7 @@ class KeyAlgorithm(ABC):
         cls,
         *,
         data: bytes,
-        key,
+        key: dict | bytes,
         alg: str,
         password: bytes | None = None,
     ) -> bytes:
@@ -92,7 +94,7 @@ class KeyAlgorithm(ABC):
         signature: bytes,
         key: dict | bytes,
         alg: str,
-        **kwargs,
+        **kwargs: object,
     ) -> bool:
         """Verify signature using the specified algorithm."""
 
@@ -107,11 +109,11 @@ class AbstractKey(ABC):
 
     @classmethod
     @abstractmethod
-    def generate(cls, **kwargs) -> "AbstractKey":
+    def generate(cls, **kwargs: object) -> "AbstractKey":
         """Generate a key."""
 
     @classmethod
-    def generate_algorithm(cls, alg: str, **kwargs) -> "AbstractKey":
+    def generate_algorithm(cls, alg: str, **kwargs: object) -> "AbstractKey":
         """Generate a random key for the given algorithm."""
         for child in cls.__subclasses__():
             if alg in child.SUPPORTED_ALGORITHMS:
@@ -160,7 +162,9 @@ class AbstractKey(ABC):
         raise ValueError("Invalid key data.")
 
     @abstractmethod
-    def public_key(self):
+    def public_key(
+        self,
+    ) -> RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey:
         """Get the public key."""
 
     @abstractmethod

@@ -45,7 +45,7 @@ def fetch_jwk(*, jwks_url: str, kid: str) -> dict | None:
     raise JWKNotFoundError()
 
 
-def verify_temporal_claims(*, payload: dict):
+def verify_temporal_claims(*, payload: dict) -> bool:
     now = int(time.time())
     if "exp" in payload and now >= payload["exp"]:
         raise JWTExpiredError()
@@ -54,6 +54,49 @@ def verify_temporal_claims(*, payload: dict):
     if "iat" in payload and now < payload["iat"] - 60:
         raise JWTIssuedInFutureError()
     return True
+
+
+def _validate_audience(
+    payload: dict, expected_audience: str | list[str] | None
+) -> None:
+    if expected_audience is not None:
+        if "aud" not in payload:
+            raise JWTMissingAudienceError()
+        if isinstance(expected_audience, str):
+            expected_audience = [expected_audience]
+        if payload["aud"] not in expected_audience:
+            raise JWTInvalidAudienceError()
+
+
+def _validate_acr(payload: dict, expected_acr: str | list[str] | None) -> None:
+    if "acr" in payload and expected_acr is not None:
+        if isinstance(expected_acr, str):
+            expected_acr = [expected_acr]
+        if payload["acr"] not in expected_acr:
+            raise JWTInvalidACRError()
+
+
+def _validate_issuer(
+    payload: dict, expected_issuer: str | list[str] | None
+) -> None:
+    if "iss" in payload and expected_issuer is not None:
+        if isinstance(expected_issuer, str):
+            expected_issuer = [expected_issuer]
+        if payload["iss"] not in expected_issuer:
+            raise JWTInvalidIssuerError()
+
+
+def _validate_token_type(
+    payload: dict, expected_token_type: str | list[str] | None
+) -> None:
+    if "token_type" in payload and expected_token_type is not None:
+        if isinstance(expected_token_type, str):
+            expected_token_type = [expected_token_type]
+        if payload["token_type"] not in expected_token_type:
+            raise JWTInvalidTokenTypeError(
+                expected_token_type=expected_token_type,
+                provided_token_type=payload["token_type"],
+            )
 
 
 def verify_claims(
@@ -67,64 +110,11 @@ def verify_claims(
     """
     Verify additional JWT claims like audience, acr, and issuer if they
     are present.
-
-    Args:
-        payload: The JWT payload
-        expected_audience:  The expected audience value(s) to validate against.
-                            Can be a single string or list of strings.
-                            If provided, the token MUST have an aud claim
-                            that matches one of the expected values.
-        expected_acr:       The expected acr value(s) to validate against.
-                            Can be a single string or list of strings.
-        expected_issuer:    The expected issuer value(s) to validate against.
-                            Can be a single string or list of strings.
-        expected_token_type: The expected token type value(s)
-                            to validate against.
-                            Can be a single string or list of strings.
-
-    Returns:
-        bool: True if all claims are valid
-
-    Raises:
-        JWTInvalidAudienceError: If the audience claim is invalid
-        JWTMissingAudienceError: If the audience claim is missing
-                                 and expected_audience is provided
-        JWTInvalidACRError: If the acr claim is invalid
-        JWTInvalidIssuerError: If the issuer claim is invalid
-        JWTInvalidTokenTypeError: If the token type claim is invalid
     """
-    # Handle audience validation
-    if expected_audience is not None:
-        if "aud" not in payload:
-            raise JWTMissingAudienceError()
-        if isinstance(expected_audience, str):
-            expected_audience = [expected_audience]
-        if payload["aud"] not in expected_audience:
-            raise JWTInvalidAudienceError()
-
-    # Handle ACR validation
-    if "acr" in payload and expected_acr is not None:
-        if isinstance(expected_acr, str):
-            expected_acr = [expected_acr]
-        if payload["acr"] not in expected_acr:
-            raise JWTInvalidACRError()
-
-    # Handle issuer validation
-    if "iss" in payload and expected_issuer is not None:
-        if isinstance(expected_issuer, str):
-            expected_issuer = [expected_issuer]
-        if payload["iss"] not in expected_issuer:
-            raise JWTInvalidIssuerError()
-
-    # Handle token type validation
-    if "token_type" in payload and expected_token_type is not None:
-        if isinstance(expected_token_type, str):
-            expected_token_type = [expected_token_type]
-        if payload["token_type"] not in expected_token_type:
-            raise JWTInvalidTokenTypeError(
-                expected_token_type=expected_token_type,
-                provided_token_type=payload["token_type"],
-            )
+    _validate_audience(payload, expected_audience)
+    _validate_acr(payload, expected_acr)
+    _validate_issuer(payload, expected_issuer)
+    _validate_token_type(payload, expected_token_type)
     return True
 
 

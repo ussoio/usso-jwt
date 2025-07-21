@@ -14,7 +14,7 @@ def test_token(
     test_valid_payload: dict,
     test_header: dict,
     test_key: algorithms.AbstractKey,
-):
+) -> str:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -29,7 +29,7 @@ def test_jwt(
     test_key: algorithms.AbstractKey,
     test_header: dict,
     test_valid_payload: dict,
-):
+) -> None:
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.jwk()),
@@ -39,7 +39,9 @@ def test_jwt(
     assert jwt_obj.verify()
 
 
-def test_invalid_token(test_token: str, test_key: algorithms.AbstractKey):
+def test_invalid_token(
+    test_token: str, test_key: algorithms.AbstractKey
+) -> None:
     with pytest.raises(exceptions.JWTInvalidFormatError):
         invalid_token = f"{test_token[:-2]}.{test_token[-1]}"
         jwt_obj = schemas.JWT(
@@ -51,7 +53,7 @@ def test_invalid_token(test_token: str, test_key: algorithms.AbstractKey):
 
 def test_payload_class(
     test_token: str, test_key: algorithms.AbstractKey, test_valid_payload: dict
-):
+) -> None:
     class TestPayload(BaseModel):
         sub: str
         name: str
@@ -64,7 +66,6 @@ def test_payload_class(
         payload_class=TestPayload,
     )
 
-    print(jwt_obj._parts[1])
     assert jwt_obj.payload == TestPayload(
         **test_valid_payload,
     )
@@ -72,16 +73,16 @@ def test_payload_class(
 
 def test_not_verified_payload(
     test_token: str, test_key: algorithms.AbstractKey
-):
-    jwt_obj = schemas.JWT(
+) -> None:
+    jwt = schemas.JWT(
         token=test_token[:-1],
         config=schemas.JWTConfig(key=test_key.jwk()),
     )
     with pytest.raises(exceptions.JWTInvalidFormatError):
-        print(jwt_obj.token, jwt_obj.payload)
+        jwt.verify()
 
 
-def test_no_key(test_token: str):
+def test_no_key(test_token: str) -> None:
     with pytest.raises(ValueError):
         jwt_obj = schemas.JWT(
             token=test_token,
@@ -91,7 +92,7 @@ def test_no_key(test_token: str):
 
 def test_is_temporally_valid_true(
     test_token: str, test_key: algorithms.AbstractKey
-):
+) -> None:
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.jwk()),
@@ -103,7 +104,7 @@ def test_is_temporally_valid_true(
 
 def test_is_temporally_valid_false_missing_claims(
     test_header: dict, test_key: algorithms.AbstractKey
-):
+) -> None:
     # Payload missing temporal claims
     payload = {"sub": "user1", "name": "Test User"}
     token = sign.generate_jwt(
@@ -121,7 +122,7 @@ def test_is_temporally_valid_false_missing_claims(
 
 def test_is_temporally_valid_false_invalid_claims(
     test_header: dict, test_key: algorithms.AbstractKey
-):
+) -> None:
     # Payload with expired exp claim
     import time
 

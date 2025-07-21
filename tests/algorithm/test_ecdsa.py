@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from src.usso_jwt.algorithms import ECDSAAlgorithm, ECDSAKey
 
 
-def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict | bytes):
+def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict | bytes) -> None:
     """Test loading ECDSA key from JWK."""
     key = ECDSAAlgorithm.load_key(ecdsa_jwk, "ES256")
     assert hasattr(key, "sign")
@@ -16,7 +16,7 @@ def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict | bytes):
 
 def test_ecdsa_load_key_from_pem(
     ecdsa_private_key: ec.EllipticCurvePrivateKey,
-):
+) -> None:
     """Test loading ECDSA key from PEM."""
     pem = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -36,7 +36,7 @@ def test_ecdsa_load_key_from_pem(
 
 def test_ecdsa_load_key_from_der(
     ecdsa_private_key: ec.EllipticCurvePrivateKey,
-):
+) -> None:
     """Test loading ECDSA key from DER."""
     der = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -54,7 +54,7 @@ def test_ecdsa_load_key_from_der(
     assert key.jwk().get("d") is None
 
 
-def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):
+def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes) -> None:
     """Test ECDSA signing and verification."""
     signing_input = b"test"
 
@@ -77,7 +77,7 @@ def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes):
     )
 
 
-def test_ecdsa_unsupported_algorithm():
+def test_ecdsa_unsupported_algorithm() -> None:
     """Test ECDSA with unsupported algorithm."""
     with pytest.raises(ValueError, match="Unsupported ECDSA algorithm: ES128"):
         ECDSAAlgorithm.sign(data=b"test", key={}, alg="ES128")
@@ -87,7 +87,7 @@ def test_ecdsa_all_algorithms(
     ecdsa_jwk_256: dict | bytes,
     ecdsa_jwk_384: dict | bytes,
     ecdsa_jwk_512: dict | bytes,
-):
+) -> None:
     """Test all supported ECDSA algorithms."""
     signing_input = b"test"
 
@@ -102,7 +102,7 @@ def test_ecdsa_all_algorithms(
         )
 
 
-def test_ecdsa_key_generate():
+def test_ecdsa_key_generate() -> None:
     """Test ECDSA key generation."""
     key = ECDSAKey.generate(algorithm="ES256")
     assert key.jwk()["alg"] == "ES256"
@@ -113,14 +113,16 @@ def test_ecdsa_key_generate():
     assert key.jwk().get("d") is None
 
 
-def test_ecdsa_key_load_jwk(ecdsa_jwk_256: dict | bytes):
+def test_ecdsa_key_load_jwk(ecdsa_jwk_256: dict | bytes) -> None:
     """Test ECDSA key loading from JWK."""
     key = ECDSAKey.load_jwk(ecdsa_jwk_256)
     for k, v in key.jwk().items():
         assert ecdsa_jwk_256[k] == v
 
 
-def test_ecdsa_key_load_pem(ecdsa_private_key: ec.EllipticCurvePrivateKey):
+def test_ecdsa_key_load_pem(
+    ecdsa_private_key: ec.EllipticCurvePrivateKey,
+) -> None:
     """Test ECDSA key loading from PEM."""
     pem = ecdsa_private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -137,14 +139,14 @@ def test_ecdsa_key_load_pem(ecdsa_private_key: ec.EllipticCurvePrivateKey):
     assert key.jwk()["y"] is not None
 
 
-def test_ecdsa_key_sign_verify(ecdsa_jwk_256: dict | bytes):
+def test_ecdsa_key_sign_verify(ecdsa_jwk_256: dict | bytes) -> None:
     """Test ECDSA key signing and verification."""
     key = ECDSAKey.generate(algorithm="ES256")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_ecdsa_key_type(ecdsa_jwk_256: dict | bytes):
+def test_ecdsa_key_type(ecdsa_jwk_256: dict | bytes) -> None:
     """Test ECDSA key type."""
     key = ECDSAKey.load_jwk(ecdsa_jwk_256)
     assert key.type == "ECDSA"
@@ -158,7 +160,7 @@ def test_key() -> ECDSAKey:
 @pytest.fixture
 def test_token(
     test_valid_payload: dict, test_header: dict, test_key: ECDSAKey
-):
+) -> str:
     from src.usso_jwt import sign
 
     jwt = sign.generate_jwt(
@@ -170,7 +172,7 @@ def test_token(
     return jwt
 
 
-def test_pem_key(test_token: str, test_key: ECDSAKey):
+def test_pem_key(test_token: str, test_key: ECDSAKey) -> None:
     from src.usso_jwt.schemas import JWT, JWTConfig
 
     jwt_obj = JWT(

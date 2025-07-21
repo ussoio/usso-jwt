@@ -1,49 +1,33 @@
 from typing import TypeVar
 
-from cachetools import TTLCache, cached
 from pydantic import BaseModel, Field
 
 from .config import JWTConfig
 from .enums import Algorithm
+from .exceptions import JWTError
 from .verify import extract_jwt_parts, verify_jwt, verify_temporal_claims
 
 T = TypeVar("T", bound="BaseModel")
 
 
-class JWT(BaseModel):
+class UnverifiedJWT(BaseModel):
     token: str
-    config: JWTConfig = Field(default_factory=JWTConfig)
 
     def __str__(self) -> str:
         return self.token
-
-    def __init__(
-        self,
-        *,
-        token: str,
-        config: JWTConfig | None = None,
-        payload_class: type[T] | None = None,
-    ):
-        super().__init__(token=token, config=config)
-        self._payload_class = payload_class
 
     def __hash__(self) -> int:
         return hash(self.token)
 
     @property
-    @cached(cache=TTLCache(maxsize=1000, ttl=300))
     def _parts(self) -> tuple[dict, dict, bytes, bytes]:
-        return extract_jwt_parts(self.token)
+        if getattr(self, "__parts", None) is None:
+            self.__parts = extract_jwt_parts(self.token)
+        return self.__parts
 
     @property
     def unverified_header(self) -> dict[str, str]:
         return self._parts[0]
-
-    @property
-    def header(self) -> dict[str, str]:
-        if self.verify():
-            return self.unverified_header
-        raise ValueError("JWT is not valid")
 
     @property
     def algorithm(self) -> Algorithm:
@@ -51,15 +35,7 @@ class JWT(BaseModel):
 
     @property
     def unverified_payload(self) -> dict | T:
-        if self._payload_class is not None:
-            return self._payload_class.model_validate(self._parts[1])
         return self._parts[1]
-
-    @property
-    def payload(self) -> dict | T:
-        if self.verify():
-            return self.unverified_payload
-        raise ValueError("JWT is not valid")
 
     @property
     def signature(self) -> bytes:
@@ -82,6 +58,41 @@ class JWT(BaseModel):
             if raise_exception:
                 raise e
             return False
+
+
+class JWT(UnverifiedJWT):
+    config: JWTConfig = Field(default_factory=JWTConfig)
+
+    def __init__(
+        self,
+        *,
+        token: str,
+        config: JWTConfig | None = None,
+        payload_class: type[T] | None = None,
+    ) -> None:
+        super().__init__(token=token, config=config)
+        self._payload_class = payload_class
+
+    def __hash__(self) -> int:
+        return hash(self.token)
+
+    @property
+    def header(self) -> dict[str, str]:
+        if self.verify():
+            return self.unverified_header
+        raise JWTError("JWT is not valid")
+
+    @property
+    def unverified_payload(self) -> dict | T:
+        if self._payload_class is not None:
+            return self._payload_class.model_validate(self._parts[1])
+        return self._parts[1]
+
+    @property
+    def payload(self) -> dict | T:
+        if self.verify():
+            return self.unverified_payload
+        raise JWTError("JWT is not valid")
 
     def verify(
         self,

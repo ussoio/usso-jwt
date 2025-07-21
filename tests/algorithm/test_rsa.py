@@ -7,14 +7,14 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from src.usso_jwt.algorithms import RSAAlgorithm, RSAKey
 
 
-def test_rsa_load_key_from_jwk(rsa_jwk: dict | bytes):
+def test_rsa_load_key_from_jwk(rsa_jwk: dict | bytes) -> None:
     """Test loading RSA key from JWK."""
     key = RSAAlgorithm.load_key(rsa_jwk)
     assert hasattr(key, "sign")
     assert hasattr(key, "private_bytes")
 
 
-def test_rsa_load_key_from_der(rsa_private_key: rsa.RSAPrivateKey):
+def test_rsa_load_key_from_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
     """Test loading RSA key from PEM."""
     der = rsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -26,7 +26,7 @@ def test_rsa_load_key_from_der(rsa_private_key: rsa.RSAPrivateKey):
     assert hasattr(key, "private_bytes")
 
 
-def test_rsa_sign_verify(rsa_jwk: dict | bytes):
+def test_rsa_sign_verify(rsa_jwk: dict | bytes) -> None:
     """Test RSA signing and verification."""
     data = b"test"
 
@@ -44,13 +44,13 @@ def test_rsa_sign_verify(rsa_jwk: dict | bytes):
     )
 
 
-def test_rsa_unsupported_algorithm():
+def test_rsa_unsupported_algorithm() -> None:
     """Test RSA with unsupported algorithm."""
     with pytest.raises(ValueError, match="Unsupported RSA algorithm: RS128"):
         RSAAlgorithm.sign(data=b"test", key={}, alg="RS128")
 
 
-def test_rsa_all_algorithms(rsa_jwk: dict | bytes):
+def test_rsa_all_algorithms(rsa_jwk: dict | bytes) -> None:
     """Test all supported RSA algorithms."""
     signing_input = b"test"
 
@@ -62,7 +62,7 @@ def test_rsa_all_algorithms(rsa_jwk: dict | bytes):
         )
 
 
-def test_rsa_key_generate():
+def test_rsa_key_generate() -> None:
     """Test RSA key generation."""
     key = RSAKey.generate(algorithm="RS256")
     assert key.jwk()["alg"] == "RS256"
@@ -77,14 +77,14 @@ def test_rsa_key_generate():
     assert key.jwk().get("qi") is None
 
 
-def test_rsa_key_load_jwk(rsa_jwk: dict | bytes):
+def test_rsa_key_load_jwk(rsa_jwk: dict | bytes) -> None:
     """Test RSA key loading from JWK."""
     key = RSAKey.load_jwk(rsa_jwk)
     for k, v in key.jwk().items():
         assert rsa_jwk[k] == v, f"Key {k} mismatch"
 
 
-def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey):
+def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey) -> None:
     """Test RSA key loading from PEM."""
     pem = rsa_private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -101,7 +101,7 @@ def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey):
     assert key.jwk().get("d") is None
 
 
-def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey):
+def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
     """Test RSA key loading from DER."""
     der = rsa_private_key.private_bytes(
         encoding=serialization.Encoding.DER,
@@ -118,14 +118,14 @@ def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey):
     assert key.jwk().get("d") is None
 
 
-def test_rsa_key_sign_verify(rsa_jwk: dict | bytes):
+def test_rsa_key_sign_verify(rsa_jwk: dict | bytes) -> None:
     """Test RSA key signing and verification."""
     key = RSAKey.generate(algorithm="RS256")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_rsa_key_type(rsa_jwk: dict | bytes):
+def test_rsa_key_type(rsa_jwk: dict | bytes) -> None:
     """Test RSA key type."""
     key = RSAKey.load_jwk(rsa_jwk)
     assert key.type == "RSA"
@@ -137,7 +137,9 @@ def test_key() -> RSAKey:
 
 
 @pytest.fixture
-def test_token(test_valid_payload: dict, test_header: dict, test_key: RSAKey):
+def test_token(
+    test_valid_payload: dict, test_header: dict, test_key: RSAKey
+) -> str:
     from src.usso_jwt import sign
 
     jwt = sign.generate_jwt(
@@ -149,7 +151,7 @@ def test_token(test_valid_payload: dict, test_header: dict, test_key: RSAKey):
     return jwt
 
 
-def test_pem_key(test_token: str, test_key: RSAKey):
+def test_pem_key(test_token: str, test_key: RSAKey) -> None:
     from src.usso_jwt import schemas
 
     jwt_obj = schemas.JWT(

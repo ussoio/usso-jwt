@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -35,7 +34,7 @@ class JWTConfig(BaseModel):
         description="Algorithm to use for signing/verification.",
     )
 
-    def __init__(self, **data: Any):
+    def __init__(self, **data: dict) -> None:
         if os.getenv("JWT_CONFIG") and not data:
             data = json.loads(os.getenv("JWT_CONFIG", "{}"))
 
