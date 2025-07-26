@@ -50,7 +50,7 @@ def convert_key_to_jwk(key: bytes) -> dict:
             "x": b64url_encode(public_key.public_bytes_raw()),
         }
     else:
-        raise ValueError("Unsupported algorithm")
+        raise TypeError("Unsupported algorithm")
 
 
 def convert_jwk_to_pem(key: dict) -> bytes:
@@ -63,7 +63,7 @@ class KeyAlgorithm(ABC):
 
     @property
     @abstractmethod
-    def SUPPORTED_ALGORITHMS(self) -> set[str]:
+    def SUPPORTED_ALGORITHMS(self) -> set[str]:  # noqa N802
         """Set of supported algorithms for this implementation."""
 
     @classmethod
@@ -104,7 +104,7 @@ class AbstractKey(ABC):
 
     @property
     @abstractmethod
-    def SUPPORTED_ALGORITHMS(self) -> set[str]:
+    def SUPPORTED_ALGORITHMS(self) -> set[str]:  # noqa N802
         """Set of supported algorithms for this implementation."""
 
     @classmethod

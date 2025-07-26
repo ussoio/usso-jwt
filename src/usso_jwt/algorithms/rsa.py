@@ -1,3 +1,5 @@
+from typing import Any, ClassVar
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -10,7 +12,7 @@ class RSAAlgorithm(KeyAlgorithm):
     """RSA algorithm implementation
     (RS256, RS384, RS512, PS256, PS384, PS512)."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "RS256": hashes.SHA256,
         "RS384": hashes.SHA384,
         "RS512": hashes.SHA512,
@@ -159,15 +161,16 @@ class RSAAlgorithm(KeyAlgorithm):
                     ),
                     hash_alg(),
                 )
-            return True
         except Exception:
             return False
+
+        return True
 
 
 class RSAKey(AbstractKey):
     """RSA key implementation."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "RS256": hashes.SHA256,
         "RS384": hashes.SHA384,
         "RS512": hashes.SHA512,
@@ -255,10 +258,6 @@ class RSAKey(AbstractKey):
                 )
             ),
             "e": b64url_encode(
-                # public_key.public_numbers().e.to_bytes(
-                #     public_key.key_size // 8,
-                #     "big",
-                # )
                 public_key.public_numbers().e.to_bytes(
                     (public_key.public_numbers().e.bit_length() + 7) // 8,
                     "big",

@@ -1,3 +1,5 @@
+from typing import Any, ClassVar
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -9,7 +11,12 @@ from .base import AbstractKey, KeyAlgorithm
 class EdDSAAlgorithm(KeyAlgorithm):
     """EdDSA algorithm implementation (Ed25519)."""
 
-    SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA", "Ed25519", "ED25519"}
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
+        "EdDSA",
+        "EDDSA",
+        "Ed25519",
+        "ED25519",
+    }
 
     @classmethod
     def load_key(
@@ -112,15 +119,20 @@ class EdDSAAlgorithm(KeyAlgorithm):
 
         try:
             pubkey.verify(signature, data)
-            return True
         except Exception:
             return False
+        return True
 
 
 class EdDSAKey(AbstractKey):
     """EdDSA key implementation."""
 
-    SUPPORTED_ALGORITHMS = {"EdDSA", "EDDSA", "Ed25519", "ED25519"}
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
+        "EdDSA",
+        "EDDSA",
+        "Ed25519",
+        "ED25519",
+    }
 
     def __init__(
         self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"

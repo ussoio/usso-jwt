@@ -4,7 +4,7 @@
 class JWTError(Exception):
     """Base exception for JWT-related errors."""
 
-    def __init__(self, message: str = None, *args: object) -> None:
+    def __init__(self, message: str | None = None, *args: object) -> None:
         self.message = message
         super().__init__(message, *args)
 

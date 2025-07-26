@@ -51,12 +51,12 @@ class UnverifiedJWT(BaseModel):
 
     def is_temporally_valid(self, *, raise_exception: bool = False) -> bool:
         try:
-            if verify_temporal_claims(payload=self.unverified_payload):
-                return True
-            return False
-        except Exception as e:
+            return bool(
+                verify_temporal_claims(payload=self.unverified_payload)
+            )
+        except Exception:
             if raise_exception:
-                raise e
+                raise
             return False
 
 

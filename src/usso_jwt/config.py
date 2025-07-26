@@ -50,13 +50,13 @@ class JWTConfig(BaseModel):
         return hash(self.model_dump_json())
 
     @model_validator(mode="after")
-    def validate_config(cls, data: "JWTConfig") -> "JWTConfig":
+    def validate_config(cls, data: "JWTConfig") -> "JWTConfig":  # noqa: N805
         if not data.jwks_url and not data.key:
             raise ValueError("Either jwks_url or key must be provided")
         return data
 
     @field_validator("key", mode="after")
-    def validate_key(cls, v: dict | str | bytes | None) -> dict | None:
+    def validate_key(cls, v: dict | str | bytes | None) -> dict | None:  # noqa: N805
         from .algorithms.base import convert_key_to_jwk
 
         if v is None:

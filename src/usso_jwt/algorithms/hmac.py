@@ -1,4 +1,5 @@
 import os
+from typing import Any, ClassVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
@@ -10,7 +11,7 @@ from .base import AbstractKey, KeyAlgorithm
 class HMACAlgorithm(KeyAlgorithm):
     """HMAC algorithm implementation (HS256, HS384, HS512)."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "HS256": hashes.SHA256,
         "HS384": hashes.SHA384,
         "HS512": hashes.SHA512,
@@ -100,15 +101,16 @@ class HMACAlgorithm(KeyAlgorithm):
         h.update(data)
         try:
             h.verify(signature)
-            return True
         except Exception:
             return False
+
+        return True
 
 
 class HMACKey(AbstractKey):
     """HMAC key implementation."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "HS256": hashes.SHA256,
         "HS384": hashes.SHA384,
         "HS512": hashes.SHA512,

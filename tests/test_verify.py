@@ -123,7 +123,7 @@ def test_invalid_token_type(
         verify.verify_jwt(
             token=jwt,
             jwk=test_key.jwk(),
-            expected_token_type="refresh",
+            expected_token_type="refresh",  # noqa: S106
         )
 
 

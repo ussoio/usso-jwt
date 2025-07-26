@@ -1,3 +1,5 @@
+from typing import Any, ClassVar
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
@@ -9,7 +11,7 @@ from .base import AbstractKey, KeyAlgorithm
 class ECDSAAlgorithm(KeyAlgorithm):
     """ECDSA algorithm implementation (ES256, ES384, ES512)."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "ES256": ec.SECP256R1,
         "ES384": ec.SECP384R1,
         "ES512": ec.SECP521R1,
@@ -141,15 +143,15 @@ class ECDSAAlgorithm(KeyAlgorithm):
             sig = utils.encode_dss_signature(r, s)
 
             pubkey.verify(sig, data, ec.ECDSA(hashes.SHA256()))
-            return True
         except Exception:
             return False
+        return True
 
 
 class ECDSAKey(AbstractKey):
     """ECDSA key implementation."""
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
         "ES256": ec.SECP256R1,
         "ES384": ec.SECP384R1,
         "ES512": ec.SECP521R1,
@@ -226,7 +228,7 @@ class ECDSAKey(AbstractKey):
     def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""
         public_key = self.key.public_key()
-        CURVE_NAME_TO_JWK_CRV = {
+        curve_name_to_jwk_crv = {
             "secp256r1": "P-256",
             "secp384r1": "P-384",
             "secp521r1": "P-521",
@@ -234,7 +236,7 @@ class ECDSAKey(AbstractKey):
         return {
             "kty": "EC",
             "alg": self.algorithm,
-            "crv": CURVE_NAME_TO_JWK_CRV[public_key.curve.name],
+            "crv": curve_name_to_jwk_crv[public_key.curve.name],
             "x": b64url_encode(
                 public_key.public_numbers().x.to_bytes(
                     public_key.curve.key_size // 8, "big"

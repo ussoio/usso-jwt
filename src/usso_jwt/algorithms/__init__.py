@@ -32,17 +32,17 @@ def get_algorithm(alg: str) -> type[KeyAlgorithm]:
 
 
 __all__ = [
-    "KeyAlgorithm",
     "AbstractKey",
-    "convert_jwk_to_pem",
-    "convert_key_to_jwk",
-    "HMACKey",
-    "RSAKey",
+    "ECDSAAlgorithm",
     "ECDSAKey",
+    "EdDSAAlgorithm",
     "EdDSAKey",
     "HMACAlgorithm",
+    "HMACKey",
+    "KeyAlgorithm",
     "RSAAlgorithm",
-    "ECDSAAlgorithm",
-    "EdDSAAlgorithm",
+    "RSAKey",
+    "convert_jwk_to_pem",
+    "convert_key_to_jwk",
     "get_algorithm",
 ]

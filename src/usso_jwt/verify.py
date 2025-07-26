@@ -29,9 +29,9 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
         payload = json.loads(b64url_decode(payload_b64))
         signature = b64url_decode(signature_b64)
         signing_input = f"{header_b64}.{payload_b64}".encode()
-        return header, payload, signature, signing_input
     except (ValueError, json.JSONDecodeError) as e:
         raise JWTInvalidFormatError() from e
+    return header, payload, signature, signing_input
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
@@ -154,8 +154,8 @@ def verify_signature(
 def verify_jwt(
     *,
     token: str,
-    jwks_url: str = None,
-    kid: str = None,
+    jwks_url: str | None = None,
+    kid: str | None = None,
     jwk: dict | None = None,
     expected_audience: str | list[str] | None = None,
     expected_acr: str | list[str] | None = None,

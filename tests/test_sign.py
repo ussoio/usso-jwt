@@ -46,8 +46,6 @@ def test_sign_verify(
         key=test_key.private_der(),
         alg=test_key.algorithm,
     )
-    # print(signature, test_key.algorithm)
-    # print(test_key.public_pem().decode())
     header_b64 = b64url_encode(json.dumps(test_header).encode())
     payload_b64 = b64url_encode(json.dumps(test_valid_payload).encode())
     signing_input = f"{header_b64}.{payload_b64}".encode()
@@ -82,5 +80,4 @@ def test_generate_jwt(
         signature=signature,
         data=signing_input,
     )
-    # assert verify.verify_temporal_claims(payload=payload)
     assert verify.verify_jwt(token=jwt, jwk=test_key.jwk())

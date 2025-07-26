@@ -10,8 +10,6 @@ from src.usso_jwt.algorithms import AbstractKey, EdDSAKey
 @pytest.fixture
 def test_key() -> AbstractKey:
     return EdDSAKey.generate()
-    # return RSAKey.generate(algorithm="PS256", key_size=2048)
-    # return ECDSAKey.generate(algorithm="ES256")
 
 
 @pytest.fixture
