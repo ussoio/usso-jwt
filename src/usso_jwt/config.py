@@ -33,6 +33,10 @@ class JWTConfig(BaseModel):
         default=Algorithm.EdDSA,
         description="Algorithm to use for signing/verification.",
     )
+    maximum_age: int | None = Field(
+        default=None,
+        description="Maximum age of the JWT in seconds.",
+    )
 
     def __init__(self, **data: dict) -> None:
         if os.getenv("JWT_CONFIG") and not data:
