@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso-jwt"
-version = "0.2.7"
+version = "0.2.8"
 description = "A simple and lightweight Python package for handling JWT (JSON Web Token) operations with USSO (Unified Single Sign-On)."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -82,8 +82,8 @@ select = [
   "ISC",   # implicit string concatenation
   "G",     # misuse of logging string interpolation
   # "D",     # docstrings: docstring checking
-  "ERA",   # remove commented code
-  "RUF",   # ruff-specific improvements
+  "ERA", # remove commented code
+  "RUF", # ruff-specific improvements
 ]
 per-file-ignores = { "tests/*" = ["G004", "S101"], "server/db.py" = ["TRY"] }
 ignore = ["TRY003", "COM812"]

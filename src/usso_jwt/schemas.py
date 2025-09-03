@@ -98,6 +98,8 @@ class JWT(UnverifiedJWT):
         self,
         expected_acr: str | list[str] | None = None,
         expected_token_type: str | list[str] | None = None,
+        maximum_age: int | None = None,
+        **kwargs: object,
     ) -> bool:
         return verify_jwt(
             token=self.token,
@@ -108,4 +110,5 @@ class JWT(UnverifiedJWT):
             expected_issuer=self.config.issuer,
             expected_acr=expected_acr,
             expected_token_type=expected_token_type,
+            maximum_age=maximum_age,
         )

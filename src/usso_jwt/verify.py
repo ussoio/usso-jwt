@@ -16,6 +16,7 @@ from .exceptions import (
     JWTInvalidSignatureError,
     JWTInvalidTokenTypeError,
     JWTIssuedInFutureError,
+    JWTMaximumAgeError,
     JWTMissingAudienceError,
     JWTNotValidYetError,
 )
@@ -161,6 +162,7 @@ def verify_jwt(
     expected_acr: str | list[str] | None = None,
     expected_issuer: str | list[str] | None = None,
     expected_token_type: str | list[str] | None = None,
+    maximum_age: int | None = None,
 ) -> bool:
     header, payload, signature, signing_input = extract_jwt_parts(token)
     if jwk is None:
@@ -179,5 +181,11 @@ def verify_jwt(
         expected_issuer=expected_issuer,
         expected_token_type=expected_token_type,
     )
-
+    if maximum_age is not None:
+        verify_maximum_age(payload=payload, maximum_age=maximum_age)
     return True
+
+
+def verify_maximum_age(payload: dict, maximum_age: int) -> None:
+    if "iat" in payload and payload["iat"] + maximum_age < time.time():
+        raise JWTMaximumAgeError()

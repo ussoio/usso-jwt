@@ -25,6 +25,14 @@ class JWTNotValidYetError(JWTError):
         super().__init__(self.message)
 
 
+class JWTMaximumAgeError(JWTError):
+    """Raised when a JWT's 'iat' claim is older than the maximum age."""
+
+    def __init__(self) -> None:
+        self.message = "JWT is older than the maximum age"
+        super().__init__(self.message)
+
+
 class JWTIssuedInFutureError(JWTError):
     """Raised when a JWT's 'iat' claim is in the future."""
 
