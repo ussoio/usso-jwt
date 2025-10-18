@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -54,11 +55,10 @@ class JWTConfig(BaseModel):
         return hash(self.model_dump_json())
 
     @model_validator(mode="after")
-    @classmethod
-    def validate_config(cls, data: "JWTConfig") -> "JWTConfig":
-        if not data.jwks_url and not data.key:
+    def validate_config(self) -> Self:
+        if not self.jwks_url and not self.key:
             raise ValueError("Either jwks_url or key must be provided")
-        return data
+        return self
 
     @field_validator("key", mode="after")
     @classmethod
