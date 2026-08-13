@@ -1,27 +1,27 @@
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from ..utils import b64url_decode, b64url_encode
+from ..utils import as_jwk_dict, b64url_decode, b64url_encode, jwk_b64_field
 from .base import AbstractKey, KeyAlgorithm
 
 
 class EdDSAAlgorithm(KeyAlgorithm):
     """EdDSA algorithm implementation (Ed25519)."""
 
-    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
-        "EdDSA",
+    SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {
         "EDDSA",
-        "Ed25519",
         "ED25519",
+        "EdDSA",
+        "Ed25519",
     }
 
     @classmethod
     def load_key(
         cls,
-        key: dict | bytes | ed25519.Ed25519PrivateKey,
+        key: object,
         password: bytes | None = None,
     ) -> ed25519.Ed25519PrivateKey:
         """
@@ -36,24 +36,29 @@ class EdDSAAlgorithm(KeyAlgorithm):
         """
         if isinstance(key, ed25519.Ed25519PrivateKey):
             return key
-        # Load from JWK
         if isinstance(key, dict):
-            return cls.load_jwk(key)
-        # Load from PEM
+            return cls.load_jwk(as_jwk_dict(key))
         if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
-            return serialization.load_pem_private_key(
+            loaded = serialization.load_pem_private_key(
                 key, password=password, backend=default_backend()
             )
-        # Load from DER
-        return serialization.load_der_private_key(
-            key, password=password, backend=default_backend()
-        )
+        elif isinstance(key, bytes):
+            loaded = serialization.load_der_private_key(
+                key, password=password, backend=default_backend()
+            )
+        else:
+            raise TypeError(f"Unsupported EdDSA key type: {type(key)}")
+
+        if not isinstance(loaded, ed25519.Ed25519PrivateKey):
+            raise TypeError("Expected an Ed25519PrivateKey")
+        return loaded
 
     @classmethod
-    def load_jwk(cls, key: dict) -> ed25519.Ed25519PrivateKey:
+    def load_jwk(cls, key: dict[str, object]) -> ed25519.Ed25519PrivateKey:
         """Load a key from JWK dict."""
+        jwk = as_jwk_dict(key)
         return ed25519.Ed25519PrivateKey.from_private_bytes(
-            b64url_decode(key["d"])
+            b64url_decode(jwk_b64_field(jwk, "d"))
         )
 
     @classmethod
@@ -61,7 +66,7 @@ class EdDSAAlgorithm(KeyAlgorithm):
         cls,
         *,
         data: bytes,
-        key: dict | bytes | ed25519.Ed25519PrivateKey,
+        key: object,
         alg: str = "EdDSA",
         password: bytes | None = None,
     ) -> bytes:
@@ -89,8 +94,9 @@ class EdDSAAlgorithm(KeyAlgorithm):
         *,
         data: bytes,
         signature: bytes,
-        key: dict | bytes | ed25519.Ed25519PublicKey,
+        key: object,
         alg: str = "EdDSA",
+        **kwargs: object,
     ) -> bool:
         """
         Verify EdDSA signature.
@@ -100,22 +106,31 @@ class EdDSAAlgorithm(KeyAlgorithm):
             signature: The signature to verify
             key: Either a JWK dict or raw public key bytes
             alg: The signing algorithm used (must be "EdDSA")
-            password: Optional password for encrypted keys
+            **kwargs: Optional extras
 
         Returns:
             True if signature is valid, False otherwise
         """
+        del kwargs
         if alg not in cls.SUPPORTED_ALGORITHMS:
             raise ValueError(f"Unsupported EdDSA algorithm: {alg}")
 
         if isinstance(key, dict):
+            jwk = as_jwk_dict(key)
             pubkey = ed25519.Ed25519PublicKey.from_public_bytes(
-                b64url_decode(key["x"])
+                b64url_decode(jwk_b64_field(jwk, "x"))
             )
-        else:
-            pubkey = serialization.load_der_public_key(
+        elif isinstance(key, bytes):
+            loaded = serialization.load_der_public_key(
                 key, backend=default_backend()
             )
+            if not isinstance(loaded, ed25519.Ed25519PublicKey):
+                raise TypeError("Expected an Ed25519PublicKey")
+            pubkey = loaded
+        elif isinstance(key, ed25519.Ed25519PublicKey):
+            pubkey = key
+        else:
+            raise TypeError(f"Unsupported EdDSA verify key type: {type(key)}")
 
         try:
             pubkey.verify(signature, data)
@@ -127,38 +142,43 @@ class EdDSAAlgorithm(KeyAlgorithm):
 class EdDSAKey(AbstractKey):
     """EdDSA key implementation."""
 
-    SUPPORTED_ALGORITHMS: ClassVar[dict[str, Any]] = {
-        "EdDSA",
+    SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {
         "EDDSA",
-        "Ed25519",
         "ED25519",
+        "EdDSA",
+        "Ed25519",
     }
 
     def __init__(
         self, *, key: ed25519.Ed25519PrivateKey, algorithm: str = "EdDSA"
     ) -> None:
-        self.key = key
+        self._key = key
         self.algorithm = algorithm
 
+    @property
+    def key(self) -> ed25519.Ed25519PrivateKey:
+        """Underlying Ed25519 private key."""
+        return self._key
+
     @classmethod
-    def generate(
-        cls,
-        *,
-        algorithm: str = "EdDSA",
-    ) -> "EdDSAKey":
+    def generate(cls, **kwargs: object) -> "EdDSAKey":
         """Generate a new EdDSA key."""
+        algorithm = kwargs.get("algorithm", "EdDSA")
+        if not isinstance(algorithm, str):
+            raise TypeError("algorithm must be a string")
         return EdDSAKey(
             key=ed25519.Ed25519PrivateKey.generate(), algorithm=algorithm
         )
 
     @classmethod
-    def load_jwk(cls, key: dict) -> "EdDSAKey":
+    def load_jwk(cls, key: dict[str, object]) -> "EdDSAKey":
         """Load a key from JWK dict."""
-        algorithm = key.get("alg", "EdDSA")
+        jwk = as_jwk_dict(key)
+        algorithm = jwk.get("alg", "EdDSA")
+        if not isinstance(algorithm, str):
+            raise TypeError("JWK field 'alg' must be str")
         return EdDSAKey(
-            key=ed25519.Ed25519PrivateKey.from_private_bytes(
-                b64url_decode(key["d"])
-            ),
+            key=EdDSAAlgorithm.load_jwk(jwk),
             algorithm=algorithm,
         )
 
@@ -167,22 +187,32 @@ class EdDSAKey(AbstractKey):
         cls,
         key: bytes,
         password: bytes | None = None,
-        algorithm: str = "EdDSA",
+        **kwargs: object,
     ) -> "EdDSAKey":
         """Load a key from PEM."""
-        key = super().load_pem(key, password)
-        return EdDSAKey(key=key, algorithm=algorithm)
+        algorithm = kwargs.get("algorithm", "EdDSA")
+        if not isinstance(algorithm, str):
+            raise TypeError("algorithm must be a string")
+        loaded = cls.load_cryptography_pem(key, password)
+        if not isinstance(loaded, ed25519.Ed25519PrivateKey):
+            raise TypeError("Expected an Ed25519PrivateKey")
+        return EdDSAKey(key=loaded, algorithm=algorithm)
 
     @classmethod
     def load_der(
         cls,
         key: bytes,
         password: bytes | None = None,
-        algorithm: str = "EdDSA",
+        **kwargs: object,
     ) -> "EdDSAKey":
         """Load a key from DER."""
-        key = super().load_der(key, password)
-        return EdDSAKey(key=key, algorithm=algorithm)
+        algorithm = kwargs.get("algorithm", "EdDSA")
+        if not isinstance(algorithm, str):
+            raise TypeError("algorithm must be a string")
+        loaded = cls.load_cryptography_der(key, password)
+        if not isinstance(loaded, ed25519.Ed25519PrivateKey):
+            raise TypeError("Expected an Ed25519PrivateKey")
+        return EdDSAKey(key=loaded, algorithm=algorithm)
 
     def jwk(self, kid: str | None = None) -> dict:
         """Get the JWK for the key."""

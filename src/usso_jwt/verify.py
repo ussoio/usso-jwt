@@ -36,7 +36,7 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
-def fetch_jwk(*, jwks_url: str, kid: str) -> dict | None:
+def fetch_jwk(*, jwks_url: str, kid: str) -> dict:
     resp = httpx.get(jwks_url, proxy=os.getenv("PROXY"))
     resp.raise_for_status()
     jwks = resp.json()
@@ -120,15 +120,19 @@ def verify_claims(
 
 
 def verify_signature(
-    *, alg: str, key: dict, data: bytes | str | dict, signature: bytes
+    *,
+    alg: str,
+    key: dict | bytes,
+    data: bytes | str | dict,
+    signature: bytes,
 ) -> bool:
     """
     Verify a JWT signature using the specified algorithm and key.
 
     Args:
         alg: The algorithm used for signing
-        key: The verification key (JWK dict)
-        signing_input: The data that was signed
+        key: The verification key (JWK dict or public key bytes)
+        data: The data that was signed
         signature: The signature to verify
 
     Returns:
@@ -166,6 +170,8 @@ def verify_jwt(
 ) -> bool:
     header, payload, signature, signing_input = extract_jwt_parts(token)
     if jwk is None:
+        if jwks_url is None or kid is None:
+            raise JWKNotFoundError()
         jwk = fetch_jwk(jwks_url=jwks_url, kid=kid)
 
     if not verify_signature(

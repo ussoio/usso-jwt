@@ -2,7 +2,17 @@ import json_advanced as json
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
 from .algorithms import get_algorithm
+from .algorithms.base import AbstractKey
 from .utils import b64url_encode
+
+PrivateKey = (
+    dict
+    | bytes
+    | AbstractKey
+    | rsa.RSAPrivateKey
+    | ec.EllipticCurvePrivateKey
+    | ed25519.Ed25519PrivateKey
+)
 
 
 def create_jwt_header(
@@ -17,19 +27,13 @@ def create_jwt_header(
 
 def sign_jwt_parts(
     *,
-    key: (
-        dict
-        | bytes
-        | rsa.RSAPrivateKey
-        | ec.EllipticCurvePrivateKey
-        | ed25519.Ed25519PrivateKey
-    ),
+    key: PrivateKey,
     alg: str,
     signing_input: str | bytes | None = None,
     header: dict | None = None,
     payload: dict | None = None,
     password: bytes | None = None,
-) -> str:
+) -> bytes:
     """Sign JWT parts using the specified algorithm."""
     # Prepare signing input
     if header is None and payload is None and signing_input is None:
@@ -40,16 +44,19 @@ def sign_jwt_parts(
         header_b64 = b64url_encode(json.dumps(header).encode())
         payload_b64 = b64url_encode(json.dumps(payload).encode())
         signing_input = f"{header_b64}.{payload_b64}".encode()
+    elif isinstance(signing_input, str):
+        signing_input = signing_input.encode()
+
+    sign_key: object = key.key if isinstance(key, AbstractKey) else key
 
     # Get algorithm and sign
     algorithm = get_algorithm(alg)
-    signature = algorithm.sign(
+    return algorithm.sign(
         data=signing_input,
-        key=key,
+        key=sign_key,
         alg=alg,
         password=password,
     )
-    return signature
 
 
 def generate_jwt(

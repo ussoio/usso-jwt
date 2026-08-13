@@ -13,7 +13,7 @@ def test_key() -> AbstractKey:
 
 
 @pytest.fixture
-def test_valid_payload() -> dict:
+def test_valid_payload() -> dict[str, object]:
     """Create a test JWT payload."""
     now = int(time.time())
     return {
@@ -29,7 +29,7 @@ def test_valid_payload() -> dict:
 
 
 @pytest.fixture
-def test_expired_payload() -> dict:
+def test_expired_payload() -> dict[str, object]:
     """Create a test JWT payload with an expired timestamp."""
     now = int(time.time())
     return {
@@ -41,7 +41,7 @@ def test_expired_payload() -> dict:
 
 
 @pytest.fixture
-def test_future_payload() -> dict:
+def test_future_payload() -> dict[str, object]:
     """Create a test JWT payload with an expired timestamp."""
     now = int(time.time())
     return {
@@ -53,7 +53,7 @@ def test_future_payload() -> dict:
 
 
 @pytest.fixture
-def test_future_nbf_payload() -> dict:
+def test_future_nbf_payload() -> dict[str, object]:
     """Create a test JWT payload with an expired timestamp."""
     now = int(time.time())
     return {
@@ -66,7 +66,7 @@ def test_future_nbf_payload() -> dict:
 
 
 @pytest.fixture
-def test_header(test_key: AbstractKey) -> dict:
+def test_header(test_key: AbstractKey) -> dict[str, object]:
     """Create a test JWT header."""
     return {
         "alg": test_key.algorithm,

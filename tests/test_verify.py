@@ -3,6 +3,7 @@ import pytest
 
 from src.usso_jwt import exceptions, sign, verify
 from src.usso_jwt.algorithms import AbstractKey
+from src.usso_jwt.enums import TokenType
 
 
 def test_fetch_jwk() -> None:
@@ -123,7 +124,7 @@ def test_invalid_token_type(
         verify.verify_jwt(
             token=jwt,
             jwk=test_key.jwk(),
-            expected_token_type="refresh",  # noqa: S106
+            expected_token_type=TokenType.REFRESH,
         )
 
 

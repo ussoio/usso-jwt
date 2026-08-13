@@ -7,9 +7,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from src.usso_jwt.algorithms import ECDSAAlgorithm, ECDSAKey
 
 
-def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict | bytes) -> None:
+def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict[str, object]) -> None:
     """Test loading ECDSA key from JWK."""
-    key = ECDSAAlgorithm.load_key(ecdsa_jwk, "ES256")
+    key = ECDSAAlgorithm.load_key(ecdsa_jwk)
     assert hasattr(key, "sign")
     assert hasattr(key, "private_bytes")
 
@@ -54,7 +54,7 @@ def test_ecdsa_load_key_from_der(
     assert key.jwk().get("d") is None
 
 
-def test_ecdsa_sign_verify(ecdsa_jwk: dict | bytes) -> None:
+def test_ecdsa_sign_verify(ecdsa_jwk: dict[str, object]) -> None:
     """Test ECDSA signing and verification."""
     signing_input = b"test"
 
@@ -84,9 +84,9 @@ def test_ecdsa_unsupported_algorithm() -> None:
 
 
 def test_ecdsa_all_algorithms(
-    ecdsa_jwk_256: dict | bytes,
-    ecdsa_jwk_384: dict | bytes,
-    ecdsa_jwk_512: dict | bytes,
+    ecdsa_jwk_256: dict[str, object],
+    ecdsa_jwk_384: dict[str, object],
+    ecdsa_jwk_512: dict[str, object],
 ) -> None:
     """Test all supported ECDSA algorithms."""
     signing_input = b"test"
@@ -113,7 +113,7 @@ def test_ecdsa_key_generate() -> None:
     assert key.jwk().get("d") is None
 
 
-def test_ecdsa_key_load_jwk(ecdsa_jwk_256: dict | bytes) -> None:
+def test_ecdsa_key_load_jwk(ecdsa_jwk_256: dict[str, object]) -> None:
     """Test ECDSA key loading from JWK."""
     key = ECDSAKey.load_jwk(ecdsa_jwk_256)
     for k, v in key.jwk().items():
@@ -139,14 +139,14 @@ def test_ecdsa_key_load_pem(
     assert key.jwk()["y"] is not None
 
 
-def test_ecdsa_key_sign_verify(ecdsa_jwk_256: dict | bytes) -> None:
+def test_ecdsa_key_sign_verify(ecdsa_jwk_256: dict[str, object]) -> None:
     """Test ECDSA key signing and verification."""
     key = ECDSAKey.generate(algorithm="ES256")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_ecdsa_key_type(ecdsa_jwk_256: dict | bytes) -> None:
+def test_ecdsa_key_type(ecdsa_jwk_256: dict[str, object]) -> None:
     """Test ECDSA key type."""
     key = ECDSAKey.load_jwk(ecdsa_jwk_256)
     assert key.type == "ECDSA"

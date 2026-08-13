@@ -8,7 +8,7 @@ from src.usso_jwt import schemas, sign
 from src.usso_jwt.algorithms import EdDSAAlgorithm, EdDSAKey
 
 
-def test_eddsa_load_key_from_jwk(eddsa_jwk: dict | bytes) -> None:
+def test_eddsa_load_key_from_jwk(eddsa_jwk: dict[str, object]) -> None:
     """Test loading EdDSA key from JWK."""
     key = EdDSAAlgorithm.load_key(eddsa_jwk)
     assert hasattr(key, "sign")
@@ -29,7 +29,7 @@ def test_eddsa_load_key_from_bytes(
     assert hasattr(key, "private_bytes")
 
 
-def test_eddsa_sign_verify(eddsa_jwk: dict | bytes) -> None:
+def test_eddsa_sign_verify(eddsa_jwk: dict[str, object]) -> None:
     """Test EdDSA signing and verification."""
     data = b"test"
 
@@ -63,7 +63,7 @@ def test_eddsa_key_generate() -> None:
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_load_jwk(eddsa_jwk: dict | bytes) -> None:
+def test_eddsa_key_load_jwk(eddsa_jwk: dict[str, object]) -> None:
     """Test EdDSA key loading from JWK."""
     key = EdDSAKey.load_jwk(eddsa_jwk)
     for k, v in key.jwk().items():
@@ -108,14 +108,14 @@ def test_eddsa_key_load_der(
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_sign_verify(eddsa_jwk: dict | bytes) -> None:
+def test_eddsa_key_sign_verify(eddsa_jwk: dict[str, object]) -> None:
     """Test EdDSA key signing and verification."""
     key = EdDSAKey.generate(algorithm="EdDSA")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_eddsa_key_type(eddsa_jwk: dict | bytes) -> None:
+def test_eddsa_key_type(eddsa_jwk: dict[str, object]) -> None:
     """Test EdDSA key type."""
     key = EdDSAKey.load_jwk(eddsa_jwk)
     assert key.type == "EdDSA"

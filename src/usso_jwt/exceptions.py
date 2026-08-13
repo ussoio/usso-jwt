@@ -78,17 +78,25 @@ class JWTInvalidTokenTypeError(JWTError):
 
     def __init__(
         self,
-        expected_token_type: str | None = None,
+        expected_token_type: str | list[str] | None = None,
         provided_token_type: str | None = None,
     ) -> None:
         self.message = "JWT token type claim is invalid"
-        if expected_token_type and provided_token_type:
+        if isinstance(expected_token_type, list):
+            expected_display: str | None = ", ".join(
+                str(item) for item in expected_token_type
+            )
+        elif expected_token_type is not None:
+            expected_display = str(expected_token_type)
+        else:
+            expected_display = None
+        if expected_display and provided_token_type:
             self.message += (
-                f" (expected: {expected_token_type},"
+                f" (expected: {expected_display},"
                 f" provided: {provided_token_type})"
             )
-        elif expected_token_type:
-            self.message += f" (expected: {expected_token_type})"
+        elif expected_display:
+            self.message += f" (expected: {expected_display})"
         elif provided_token_type:
             self.message += f" (provided: {provided_token_type})"
         super().__init__(self.message)

@@ -44,3 +44,10 @@ class Algorithm(StrEnum):
             Algorithm.EdDSA: "OKP",
             Algorithm.Ed25519: "OKP",
         }[self]
+
+
+class TokenType(StrEnum):
+    """JWT token_type claim values."""
+
+    ACCESS = "access"
+    REFRESH = "refresh"

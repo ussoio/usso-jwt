@@ -16,7 +16,7 @@ def hmac_key() -> bytes:
 
 
 @pytest.fixture
-def hmac_jwk(hmac_key: bytes) -> dict:
+def hmac_jwk(hmac_key: bytes) -> dict[str, object]:
     """Create a JWK for HMAC key."""
     return {
         "kty": "oct",
@@ -37,7 +37,7 @@ def rsa_private_key() -> rsa.RSAPrivateKey:
 
 
 @pytest.fixture
-def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict:
+def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict[str, object]:
     """Generate a RSA JWK."""
     numbers = rsa_private_key.private_numbers()
     der_public_key = rsa_private_key.public_key().public_bytes(
@@ -95,7 +95,9 @@ def ecdsa_private_key() -> ec.EllipticCurvePrivateKey:
 
 
 @pytest.fixture
-def ecdsa_jwk(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
+def ecdsa_jwk(
+    ecdsa_private_key: ec.EllipticCurvePrivateKey,
+) -> dict[str, object]:
     """Create a JWK for ECDSA key."""
     public_numbers = ecdsa_private_key.public_key().public_numbers()
     private_numbers = ecdsa_private_key.private_numbers()
@@ -124,7 +126,9 @@ def ecdsa_jwk(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
 
 
 @pytest.fixture
-def ecdsa_jwk_256(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
+def ecdsa_jwk_256(
+    ecdsa_private_key: ec.EllipticCurvePrivateKey,
+) -> dict[str, object]:
     """Generate a ECDSA JWK for P-256 curve."""
     numbers = ecdsa_private_key.private_numbers()
     der_public_key = ecdsa_private_key.public_key().public_bytes(
@@ -144,7 +148,7 @@ def ecdsa_jwk_256(ecdsa_private_key: ec.EllipticCurvePrivateKey) -> dict:
 
 
 @pytest.fixture
-def ecdsa_jwk_384() -> dict:
+def ecdsa_jwk_384() -> dict[str, object]:
     """Generate a ECDSA JWK for P-384 curve."""
     private_key = ec.generate_private_key(ec.SECP384R1())
     numbers = private_key.private_numbers()
@@ -166,7 +170,7 @@ def ecdsa_jwk_384() -> dict:
 
 
 @pytest.fixture
-def ecdsa_jwk_512() -> dict:
+def ecdsa_jwk_512() -> dict[str, object]:
     """Generate a ECDSA JWK for P-521 curve."""
     private_key = ec.generate_private_key(ec.SECP521R1())
     numbers = private_key.private_numbers()
@@ -193,7 +197,9 @@ def eddsa_private_key() -> ed25519.Ed25519PrivateKey:
 
 
 @pytest.fixture
-def eddsa_jwk(eddsa_private_key: ed25519.Ed25519PrivateKey) -> dict:
+def eddsa_jwk(
+    eddsa_private_key: ed25519.Ed25519PrivateKey,
+) -> dict[str, object]:
     """Create a JWK for EdDSA key."""
     public_key = eddsa_private_key.public_key()
     der_public_key = public_key.public_bytes(

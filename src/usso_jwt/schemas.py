@@ -7,7 +7,7 @@ from .enums import Algorithm
 from .exceptions import JWTError
 from .verify import extract_jwt_parts, verify_jwt, verify_temporal_claims
 
-T = TypeVar("T", bound="BaseModel")
+T = TypeVar("T", bound=BaseModel)
 
 
 class UnverifiedJWT(BaseModel):
@@ -34,7 +34,7 @@ class UnverifiedJWT(BaseModel):
         return Algorithm(self.unverified_header["alg"].upper())
 
     @property
-    def unverified_payload(self) -> dict | T:
+    def unverified_payload(self) -> dict:
         return self._parts[1]
 
     @property
@@ -47,7 +47,7 @@ class UnverifiedJWT(BaseModel):
 
     @property
     def is_expired(self) -> bool:
-        return not self.is_temporally_valid(raise_exception=True)
+        return not self.is_temporally_valid(raise_exception=False)
 
     def is_temporally_valid(self, *, raise_exception: bool = False) -> bool:
         try:
@@ -68,7 +68,7 @@ class JWT(UnverifiedJWT):
         *,
         token: str,
         config: JWTConfig | None = None,
-        payload_class: type[T] | None = None,
+        payload_class: type[BaseModel] | None = None,
     ) -> None:
         super().__init__(token=token, config=config)
         self._payload_class = payload_class
@@ -83,13 +83,13 @@ class JWT(UnverifiedJWT):
         raise JWTError("JWT is not valid")
 
     @property
-    def unverified_payload(self) -> dict | T:
+    def unverified_payload(self) -> dict | BaseModel:
         if self._payload_class is not None:
             return self._payload_class.model_validate(self._parts[1])
         return self._parts[1]
 
     @property
-    def payload(self) -> dict | T:
+    def payload(self) -> dict | BaseModel:
         if self.verify():
             return self.unverified_payload
         raise JWTError("JWT is not valid")
@@ -100,9 +100,10 @@ class JWT(UnverifiedJWT):
         expected_token_type: str | list[str] | None = None,
         **kwargs: object,
     ) -> bool:
+        del kwargs
         return verify_jwt(
             token=self.token,
-            jwk=self.config.key,
+            jwk=self.config.jwk,
             jwks_url=self.config.jwks_url,
             kid=self.unverified_header.get("kid"),
             expected_audience=self.config.audience,

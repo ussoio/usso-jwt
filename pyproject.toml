@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso-jwt"
-version = "0.2.10"
+version = "0.2.11"
 description = "A simple and lightweight Python package for handling JWT (JSON Web Token) operations with USSO (Unified Single Sign-On)."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE.txt"]
 keywords = [
@@ -27,9 +27,9 @@ classifiers = [
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Build Tools",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
@@ -85,8 +85,8 @@ select = [
   "ERA", # remove commented code
   "RUF", # ruff-specific improvements
 ]
-per-file-ignores = { "tests/*" = ["G004", "S101"], "server/db.py" = ["TRY"] }
-ignore = ["TRY003", "COM812"]
+per-file-ignores = { "tests/*" = ["logging-f-string", "assert"], "server/db.py" = ["TRY"] }
+ignore = ["raise-vanilla-args", "missing-trailing-comma"]
 
 [tool.ruff.format]
 quote-style = "double"

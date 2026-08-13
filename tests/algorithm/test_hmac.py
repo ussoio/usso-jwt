@@ -5,7 +5,7 @@ import pytest
 from src.usso_jwt.algorithms import HMACAlgorithm, HMACKey
 
 
-def test_hmac_load_key_from_jwk(hmac_jwk: dict | bytes) -> None:
+def test_hmac_load_key_from_jwk(hmac_jwk: dict[str, object]) -> None:
     """Test loading HMAC key from JWK."""
     key = HMACAlgorithm.load_key(hmac_jwk)
     assert isinstance(key, bytes)
@@ -19,7 +19,7 @@ def test_hmac_load_key_from_bytes(hmac_key: bytes) -> None:
     assert key == hmac_key
 
 
-def test_hmac_sign_verify(hmac_jwk: dict | bytes) -> None:
+def test_hmac_sign_verify(hmac_jwk: dict[str, object]) -> None:
     """Test HMAC signing and verification."""
     # Prepare signing input
     header_b64 = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
@@ -56,7 +56,7 @@ def test_hmac_unsupported_algorithm() -> None:
         HMACAlgorithm.sign(data=b"test", key={}, alg="HS128")
 
 
-def test_hmac_all_algorithms(hmac_jwk: dict | bytes) -> None:
+def test_hmac_all_algorithms(hmac_jwk: dict[str, object]) -> None:
     """Test all supported HMAC algorithms."""
     signing_input = b"test"
 
@@ -78,7 +78,7 @@ def test_hmac_key_generate() -> None:
     assert len(key.key) == 32
 
 
-def test_hmac_key_load_jwk(hmac_jwk: dict | bytes) -> None:
+def test_hmac_key_load_jwk(hmac_jwk: dict[str, object]) -> None:
     """Test HMAC key loading from JWK."""
     key = HMACKey.load_jwk(hmac_jwk)
     assert key.algorithm == "HS256"
@@ -86,14 +86,14 @@ def test_hmac_key_load_jwk(hmac_jwk: dict | bytes) -> None:
     assert len(key.key) == 32
 
 
-def test_hmac_key_sign_verify(hmac_jwk: dict | bytes) -> None:
+def test_hmac_key_sign_verify(hmac_jwk: dict[str, object]) -> None:
     """Test HMAC key signing and verification."""
     key = HMACKey.generate(algorithm="HS256")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_hmac_key_type(hmac_jwk: dict | bytes) -> None:
+def test_hmac_key_type(hmac_jwk: dict[str, object]) -> None:
     """Test HMAC key type."""
     key = HMACKey.load_jwk(hmac_jwk)
     assert key.type == "HMAC"

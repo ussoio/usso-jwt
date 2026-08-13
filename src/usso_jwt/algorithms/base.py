@@ -1,16 +1,34 @@
 import hashlib
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    EllipticCurvePrivateKey,
+    EllipticCurvePublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    RSAPrivateKey,
+    RSAPublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from ..utils import b64url_encode
+from ..utils import b64url_encode, jwk_str_field
+
+AsymmetricPublicKey = (
+    RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey
+)
+AsymmetricPrivateKey = (
+    RSAPrivateKey | EllipticCurvePrivateKey | Ed25519PrivateKey
+)
 
 
-def convert_key_to_jwk(key: bytes) -> dict:
+def convert_key_to_jwk(key: bytes) -> dict[str, object]:
     """Convert PEM to dict."""
     # Check if the key is not in PEM format (doesn't start with BEGIN)
     if not key.startswith(b"-----BEGIN"):
@@ -32,7 +50,7 @@ def convert_key_to_jwk(key: bytes) -> dict:
                 public_key.public_numbers().e.to_bytes(256, "big")
             ),
         }
-    elif isinstance(public_key, EllipticCurvePublicKey):
+    if isinstance(public_key, EllipticCurvePublicKey):
         return {
             "kty": "EC",
             "crv": public_key.curve.name,
@@ -43,35 +61,33 @@ def convert_key_to_jwk(key: bytes) -> dict:
                 public_key.public_numbers().y.to_bytes(256, "big")
             ),
         }
-    elif isinstance(public_key, Ed25519PublicKey):
+    if isinstance(public_key, Ed25519PublicKey):
         return {
             "kty": "OKP",
             "crv": "Ed25519",
             "x": b64url_encode(public_key.public_bytes_raw()),
         }
-    else:
-        raise TypeError("Unsupported algorithm")
+    raise TypeError("Unsupported algorithm")
 
 
-def convert_jwk_to_pem(key: dict) -> bytes:
-    key = AbstractKey.load_jwk(key)
-    return key.public_pem()
+def convert_jwk_to_pem(key: dict[str, object]) -> bytes:
+    abstract_key = AbstractKey.load_jwk(key)
+    return abstract_key.public_pem()
 
 
 class KeyAlgorithm(ABC):
     """Abstract base class for JWT algorithms."""
 
-    @property
-    @abstractmethod
-    def SUPPORTED_ALGORITHMS(self) -> set[str]:  # noqa N802
-        """Set of supported algorithms for this implementation."""
+    SUPPORTED_ALGORITHMS: ClassVar[set[str]]
 
     @classmethod
     @abstractmethod
     def load_key(
-        cls, key: dict | bytes, password: bytes | None = None
-    ) -> dict | bytes:
-        """Load key from JWK dict or raw bytes."""
+        cls,
+        key: object,
+        password: bytes | None = None,
+    ) -> object:
+        """Load key from JWK dict, raw bytes, or cryptography key object."""
 
     @classmethod
     @abstractmethod
@@ -79,7 +95,7 @@ class KeyAlgorithm(ABC):
         cls,
         *,
         data: bytes,
-        key: dict | bytes,
+        key: object,
         alg: str,
         password: bytes | None = None,
     ) -> bytes:
@@ -92,7 +108,7 @@ class KeyAlgorithm(ABC):
         *,
         data: bytes,
         signature: bytes,
-        key: dict | bytes,
+        key: object,
         alg: str,
         **kwargs: object,
     ) -> bool:
@@ -102,10 +118,13 @@ class KeyAlgorithm(ABC):
 class AbstractKey(ABC):
     """Abstract base class for keys."""
 
+    SUPPORTED_ALGORITHMS: ClassVar[set[str]]
+    algorithm: str
+
     @property
     @abstractmethod
-    def SUPPORTED_ALGORITHMS(self) -> set[str]:  # noqa N802
-        """Set of supported algorithms for this implementation."""
+    def key(self) -> bytes | AsymmetricPrivateKey:
+        """Underlying key material."""
 
     @classmethod
     @abstractmethod
@@ -122,92 +141,160 @@ class AbstractKey(ABC):
         raise ValueError(f"Unsupported algorithm: {alg}")
 
     @classmethod
-    def load_jwk(cls, key: dict) -> "AbstractKey":
+    def load_jwk(cls, key: dict[str, object]) -> "AbstractKey":
         """Load a key from JWK dict."""
-        alg = key.get("alg")
-        if not alg:
+        if "alg" not in key:
             raise ValueError("Missing algorithm in JWK")
+        alg = jwk_str_field(key, "alg")
         for child in cls.__subclasses__():
             if alg in child.SUPPORTED_ALGORITHMS:
                 return child.load_jwk(key)
 
-    @classmethod
-    def load_pem(
-        cls, key: bytes, password: bytes | None = None
-    ) -> "AbstractKey":
-        """Load a key from PEM."""
+        raise ValueError(f"Unsupported algorithm: {alg}")
+
+    @staticmethod
+    def load_cryptography_pem(
+        key: bytes, password: bytes | None = None
+    ) -> PrivateKeyTypes:
+        """Load a cryptography private key from PEM bytes."""
         return serialization.load_pem_private_key(
             key, password=password, backend=default_backend()
         )
 
-    @classmethod
-    def load_der(
-        cls, key: bytes, password: bytes | None = None
-    ) -> "AbstractKey":
-        """Load a key from DER."""
+    @staticmethod
+    def load_cryptography_der(
+        key: bytes, password: bytes | None = None
+    ) -> PrivateKeyTypes:
+        """Load a cryptography private key from DER bytes."""
         return serialization.load_der_private_key(
             key, password=password, backend=default_backend()
         )
 
     @classmethod
+    def from_cryptography_key(
+        cls,
+        loaded: PrivateKeyTypes,
+        algorithm: str | None = None,
+    ) -> "AbstractKey":
+        """Wrap a cryptography private key in the matching AbstractKey."""
+        # Local imports avoid circular dependencies at module load time.
+        from .ecdsa import ECDSAKey
+        from .eddsa import EdDSAKey
+        from .rsa import RSAKey
+
+        if isinstance(loaded, RSAPrivateKey):
+            return RSAKey(key=loaded, algorithm=algorithm or "RS256")
+        if isinstance(loaded, EllipticCurvePrivateKey):
+            return ECDSAKey(key=loaded, algorithm=algorithm or "ES256")
+        if isinstance(loaded, Ed25519PrivateKey):
+            return EdDSAKey(key=loaded, algorithm=algorithm or "EdDSA")
+        raise TypeError(f"Unsupported private key type: {type(loaded)}")
+
+    @classmethod
+    def load_pem(
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        **kwargs: object,
+    ) -> "AbstractKey":
+        """Load a key from PEM."""
+        del kwargs
+        loaded = cls.load_cryptography_pem(key, password)
+        return cls.from_cryptography_key(loaded)
+
+    @classmethod
+    def load_der(
+        cls,
+        key: bytes,
+        password: bytes | None = None,
+        **kwargs: object,
+    ) -> "AbstractKey":
+        """Load a key from DER."""
+        del kwargs
+        loaded = cls.load_cryptography_der(key, password)
+        return cls.from_cryptography_key(loaded)
+
+    @classmethod
     def load(
-        cls, key: dict | bytes, password: bytes | None = None
+        cls, key: object, password: bytes | None = None
     ) -> "AbstractKey":
         """Load a key from JWK dict or PEM."""
         if isinstance(key, dict):
-            return cls.load_jwk(key)
+            return cls.load_jwk({str(k): v for k, v in key.items()})
         if isinstance(key, bytes):
             return cls.load_der(key, password)
 
         raise ValueError("Invalid key data.")
 
     @abstractmethod
-    def public_key(
-        self,
-    ) -> RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey:
+    def public_key(self) -> bytes | AsymmetricPublicKey:
         """Get the public key."""
 
     @abstractmethod
-    def jwk(self, kid: str | None = None) -> dict:
+    def jwk(self, kid: str | None = None) -> dict[str, object]:
         """Get the JWK for the key."""
 
     def private_pem(self, password: bytes | None = None) -> bytes:
         """Get the private PEM for the key."""
-        return self.key.private_bytes(
-            serialization.Encoding.PEM,
-            serialization.PrivateFormat.PKCS8,
-            (
-                serialization.NoEncryption()
-                if password is None
-                else serialization.BestAvailableEncryption(password)
-            ),
-        )
+        private_key = self.key
+        if isinstance(
+            private_key,
+            (RSAPrivateKey, EllipticCurvePrivateKey, Ed25519PrivateKey),
+        ):
+            return private_key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.PKCS8,
+                (
+                    serialization.NoEncryption()
+                    if password is None
+                    else serialization.BestAvailableEncryption(password)
+                ),
+            )
+        raise TypeError("Octet keys do not support PEM private encoding")
 
     def private_der(self, password: bytes | None = None) -> bytes:
-        """Get the private PEM for the key."""
-        return self.key.private_bytes(
-            serialization.Encoding.DER,
-            serialization.PrivateFormat.PKCS8,
-            (
-                serialization.NoEncryption()
-                if password is None
-                else serialization.BestAvailableEncryption(password)
-            ),
-        )
+        """Get the private DER for the key."""
+        private_key = self.key
+        if isinstance(
+            private_key,
+            (RSAPrivateKey, EllipticCurvePrivateKey, Ed25519PrivateKey),
+        ):
+            return private_key.private_bytes(
+                serialization.Encoding.DER,
+                serialization.PrivateFormat.PKCS8,
+                (
+                    serialization.NoEncryption()
+                    if password is None
+                    else serialization.BestAvailableEncryption(password)
+                ),
+            )
+        raise TypeError("Octet keys do not support DER private encoding")
 
     def public_pem(self) -> bytes:
         """Get the public PEM for the key."""
-        return self.key.public_key().public_bytes(
-            serialization.Encoding.PEM,
-            serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
+        private_key = self.key
+        if isinstance(
+            private_key,
+            (RSAPrivateKey, EllipticCurvePrivateKey, Ed25519PrivateKey),
+        ):
+            return private_key.public_key().public_bytes(
+                serialization.Encoding.PEM,
+                serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+        raise TypeError("Octet keys do not support PEM public encoding")
 
     def public_der(self) -> bytes:
         """Get the public DER for the key."""
-        return self.key.public_key().public_bytes(
-            serialization.Encoding.DER,
-            serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
+        private_key = self.key
+        if isinstance(
+            private_key,
+            (RSAPrivateKey, EllipticCurvePrivateKey, Ed25519PrivateKey),
+        ):
+            return private_key.public_key().public_bytes(
+                serialization.Encoding.DER,
+                serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+        raise TypeError("Octet keys do not support DER public encoding")
 
     @property
     @abstractmethod
@@ -217,5 +304,4 @@ class AbstractKey(ABC):
     @property
     def kid(self) -> str:
         """Get the key ID for the key."""
-        kid = hashlib.sha256(self.public_der()).hexdigest()
-        return kid
+        return hashlib.sha256(self.public_der()).hexdigest()

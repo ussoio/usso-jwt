@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from src.usso_jwt.algorithms import RSAAlgorithm, RSAKey
 
 
-def test_rsa_load_key_from_jwk(rsa_jwk: dict | bytes) -> None:
+def test_rsa_load_key_from_jwk(rsa_jwk: dict[str, object]) -> None:
     """Test loading RSA key from JWK."""
     key = RSAAlgorithm.load_key(rsa_jwk)
     assert hasattr(key, "sign")
@@ -26,7 +26,7 @@ def test_rsa_load_key_from_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
     assert hasattr(key, "private_bytes")
 
 
-def test_rsa_sign_verify(rsa_jwk: dict | bytes) -> None:
+def test_rsa_sign_verify(rsa_jwk: dict[str, object]) -> None:
     """Test RSA signing and verification."""
     data = b"test"
 
@@ -50,7 +50,7 @@ def test_rsa_unsupported_algorithm() -> None:
         RSAAlgorithm.sign(data=b"test", key={}, alg="RS128")
 
 
-def test_rsa_all_algorithms(rsa_jwk: dict | bytes) -> None:
+def test_rsa_all_algorithms(rsa_jwk: dict[str, object]) -> None:
     """Test all supported RSA algorithms."""
     signing_input = b"test"
 
@@ -77,7 +77,7 @@ def test_rsa_key_generate() -> None:
     assert key.jwk().get("qi") is None
 
 
-def test_rsa_key_load_jwk(rsa_jwk: dict | bytes) -> None:
+def test_rsa_key_load_jwk(rsa_jwk: dict[str, object]) -> None:
     """Test RSA key loading from JWK."""
     key = RSAKey.load_jwk(rsa_jwk)
     for k, v in key.jwk().items():
@@ -118,14 +118,14 @@ def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
     assert key.jwk().get("d") is None
 
 
-def test_rsa_key_sign_verify(rsa_jwk: dict | bytes) -> None:
+def test_rsa_key_sign_verify(rsa_jwk: dict[str, object]) -> None:
     """Test RSA key signing and verification."""
     key = RSAKey.generate(algorithm="RS256")
     signature = key.sign(data=b"test")
     assert key.verify(data=b"test", signature=signature)
 
 
-def test_rsa_key_type(rsa_jwk: dict | bytes) -> None:
+def test_rsa_key_type(rsa_jwk: dict[str, object]) -> None:
     """Test RSA key type."""
     key = RSAKey.load_jwk(rsa_jwk)
     assert key.type == "RSA"
