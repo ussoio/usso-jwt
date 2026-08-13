@@ -1,5 +1,5 @@
-# Automated release for usso-jwt on version tags (e.g. 0.2.12).
-# Syncs pyproject.toml version from the tag, commits to main, then publishes.
+# Publish usso-jwt to PyPI when a semver tag (e.g. 0.2.15) is pushed.
+# The tagged commit must already have matching version in pyproject.toml.
 
 name: Release
 
@@ -9,80 +9,87 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  build-and-publish:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Sync pyproject.toml version from tag
+      - name: Verify tag matches pyproject.toml version
         env:
-          VERSION: ${{ github.ref_name }}
+          TAG: ${{ github.ref_name }}
         run: |
           python - <<'PY'
           import os
           import pathlib
-          import re
+          import tomllib
 
-          version = os.environ["VERSION"]
-          path = pathlib.Path("pyproject.toml")
-          text = path.read_text()
-          updated, count = re.subn(
-              r'(?m)^(version\s*=\s*")[^"]*(")',
-              rf"\g<1>{version}\2",
-              text,
-              count=1,
-          )
-          if count != 1:
-              raise SystemExit("failed to update version in pyproject.toml")
-          path.write_text(updated)
-          print(f"pyproject.toml version -> {version}")
+          tag = os.environ["TAG"]
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          version = data["project"]["version"]
+          if version != tag:
+              raise SystemExit(
+                  f"version mismatch: tag={tag!r} pyproject={version!r}. "
+                  "Bump pyproject.toml, commit, then retag that commit."
+              )
+          print(f"version ok: {version}")
           PY
 
-      - name: Commit version bump to main
-        env:
-          VERSION: ${{ github.ref_name }}
+      - name: Install tools
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- pyproject.toml; then
-            echo "pyproject.toml already at ${VERSION}; skipping commit"
-          else
-            git add pyproject.toml
-            git commit -m "chore(release): ${VERSION}"
-            git push origin HEAD:main
-          fi
+          python -m pip install -U pip
+          python -m pip install -U tox tox-gh-actions
 
-      - name: Install build dependencies
-        run: python -m pip install -U setuptools wheel build
+      - name: Run tox
+        run: tox
 
-      - name: Install test dependencies
-        run: |
-          python -m pip install -U pytest pytest-cov
-          python -m pip install -e .
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Run tox (tests, lint, coverage)
-        run: |
-          python -m pip install -U tox
-          tox
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
 
-      - name: Build
+      - name: Install build tools
+        run: python -m pip install -U build
+
+      - name: Build distributions
         run: python -m build .
 
-      - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
         with:
-          skip-existing: true
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          name: python-package-distributions
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/usso-jwt
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
