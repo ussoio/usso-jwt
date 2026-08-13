@@ -1,21 +1,24 @@
+"""RSA and RSASSA-PSS JWT algorithm and key types."""
+
 from typing import ClassVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from ..utils import (
+from usso_jwt.utils import (
     as_jwk_dict,
     b64url_encode,
     jwk_int_field,
     jwk_str_field,
 )
-from .base import AbstractKey, KeyAlgorithm
+
+from .base import AbstractKey, KeyAlgorithm, register_crypto_key_builder
 
 
 class RSAAlgorithm(KeyAlgorithm):
-    """RSA algorithm implementation
-    (RS256, RS384, RS512, PS256, PS384, PS512)."""
+    """RSA/PSS algorithm support (RS*/PS*)."""
 
     SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {
         "RS256",
@@ -40,8 +43,7 @@ class RSAAlgorithm(KeyAlgorithm):
         key: object,
         password: bytes | None = None,
     ) -> rsa.RSAPrivateKey:
-        """
-        Load RSA private key from JWK dict or PEM bytes.
+        """Load RSA private key from JWK dict or PEM bytes.
 
         Args:
             key: Either a JWK dict or PEM-encoded private key bytes
@@ -49,6 +51,10 @@ class RSAAlgorithm(KeyAlgorithm):
 
         Returns:
             RSA private key object
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
         """
         if isinstance(key, rsa.RSAPrivateKey):
             return key
@@ -57,22 +63,33 @@ class RSAAlgorithm(KeyAlgorithm):
 
         if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
             loaded = serialization.load_pem_private_key(
-                key, password=password, backend=default_backend()
+                key,
+                password=password,
+                backend=default_backend(),
             )
         elif isinstance(key, bytes):
             loaded = serialization.load_der_private_key(
-                key, password=password, backend=default_backend()
+                key,
+                password=password,
+                backend=default_backend(),
             )
         else:
-            raise TypeError(f"Unsupported RSA key type: {type(key)}")
+            msg = f"Unsupported RSA key type: {type(key)}"
+            raise TypeError(msg)
 
         if not isinstance(loaded, rsa.RSAPrivateKey):
-            raise TypeError("Expected an RSAPrivateKey")
+            msg = "Expected an RSAPrivateKey"
+            raise TypeError(msg)
         return loaded
 
     @classmethod
     def load_jwk(cls, key: dict[str, object]) -> rsa.RSAPrivateKey:
-        """Load a key from JWK dict."""
+        """Load a key from JWK dict.
+
+        Returns:
+            The function result.
+
+        """
         jwk = as_jwk_dict(key)
         return rsa.RSAPrivateNumbers(
             p=jwk_int_field(jwk, "p"),
@@ -96,8 +113,7 @@ class RSAAlgorithm(KeyAlgorithm):
         alg: str = "RS256",
         password: bytes | None = None,
     ) -> bytes:
-        """
-        Sign using RSA algorithms.
+        """Sign using RSA algorithms.
 
         Args:
             data: The data to sign
@@ -108,9 +124,14 @@ class RSAAlgorithm(KeyAlgorithm):
 
         Returns:
             The signature
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
         """
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            raise ValueError(f"Unsupported RSA algorithm: {alg}")
+            msg = f"Unsupported RSA algorithm: {alg}"
+            raise ValueError(msg)
 
         privkey = cls.load_key(key, password)
         hash_alg = cls._HASHES[alg]
@@ -136,8 +157,7 @@ class RSAAlgorithm(KeyAlgorithm):
         alg: str = "RS256",
         **kwargs: object,
     ) -> bool:
-        """
-        Verify RSA signature.
+        """Verify RSA signature.
 
         Args:
             data: The data that was signed
@@ -149,10 +169,16 @@ class RSAAlgorithm(KeyAlgorithm):
 
         Returns:
             True if signature is valid, False otherwise
+
+        Raises:
+            TypeError: If the argument type is invalid.
+            ValueError: If the value is invalid or unsupported.
+
         """
         del kwargs
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            raise ValueError(f"Unsupported RSA algorithm: {alg}")
+            msg = f"Unsupported RSA algorithm: {alg}"
+            raise ValueError(msg)
 
         if isinstance(key, dict):
             jwk = as_jwk_dict(key)
@@ -165,12 +191,14 @@ class RSAAlgorithm(KeyAlgorithm):
                 backend=default_backend(),
             )
             if not isinstance(loaded, rsa.RSAPublicKey):
-                raise TypeError("Expected an RSAPublicKey")
+                msg = "Expected an RSAPublicKey"
+                raise TypeError(msg)
             pubkey = loaded
         elif isinstance(key, rsa.RSAPublicKey):
             pubkey = key
         else:
-            raise TypeError(f"Unsupported RSA verify key type: {type(key)}")
+            msg = f"Unsupported RSA verify key type: {type(key)}"
+            raise TypeError(msg)
 
         hash_alg = cls._HASHES[alg]
 
@@ -206,28 +234,48 @@ class RSAKey(AbstractKey):
     }
 
     def __init__(
-        self, *, key: rsa.RSAPrivateKey, algorithm: str = "RS256"
+        self,
+        *,
+        key: rsa.RSAPrivateKey,
+        algorithm: str = "RS256",
     ) -> None:
+        """Initialize an RSA key wrapper."""
         self._key = key
         self.algorithm = algorithm
 
     @property
     def key(self) -> rsa.RSAPrivateKey:
-        """Underlying RSA private key."""
+        """Underlying RSA private key.
+
+        Returns:
+            The function result.
+
+        """
         return self._key
 
     @classmethod
     def generate(cls, **kwargs: object) -> "RSAKey":
-        """Generate a new RSA key."""
+        """Generate a new RSA key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         algorithm = kwargs.get("algorithm", "RS256")
         key_size = kwargs.get("key_size", 2048)
         public_exponent = kwargs.get("public_exponent", 65537)
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         if not isinstance(key_size, int):
-            raise TypeError("key_size must be an int")
+            msg = "key_size must be an int"
+            raise TypeError(msg)
         if not isinstance(public_exponent, int):
-            raise TypeError("public_exponent must be an int")
+            msg = "public_exponent must be an int"
+            raise TypeError(msg)
         return RSAKey(
             key=rsa.generate_private_key(
                 public_exponent=public_exponent,
@@ -239,7 +287,12 @@ class RSAKey(AbstractKey):
 
     @classmethod
     def load_jwk(cls, key: dict[str, object]) -> "RSAKey":
-        """Load a key from JWK dict."""
+        """Load a key from JWK dict.
+
+        Returns:
+            The function result.
+
+        """
         jwk = as_jwk_dict(key)
         algorithm = jwk_str_field(jwk, "alg", "RS256")
         return RSAKey(
@@ -254,13 +307,23 @@ class RSAKey(AbstractKey):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "RSAKey":
-        """Load a key from PEM."""
+        """Load a key from PEM.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         algorithm = kwargs.get("algorithm", "RS256")
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         loaded = cls.load_cryptography_pem(key, password)
         if not isinstance(loaded, rsa.RSAPrivateKey):
-            raise TypeError("Expected an RSAPrivateKey")
+            msg = "Expected an RSAPrivateKey"
+            raise TypeError(msg)
         return RSAKey(key=loaded, algorithm=algorithm)
 
     @classmethod
@@ -270,17 +333,32 @@ class RSAKey(AbstractKey):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "RSAKey":
-        """Load a key from DER."""
+        """Load a key from DER.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         algorithm = kwargs.get("algorithm", "RS256")
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         loaded = cls.load_cryptography_der(key, password)
         if not isinstance(loaded, rsa.RSAPrivateKey):
-            raise TypeError("Expected an RSAPrivateKey")
+            msg = "Expected an RSAPrivateKey"
+            raise TypeError(msg)
         return RSAKey(key=loaded, algorithm=algorithm)
 
     def jwk(self, kid: str | None = None) -> dict:
-        """Get the JWK for the key."""
+        """Get the JWK for the key.
+
+        Returns:
+            The function result.
+
+        """
         public_key = self.key.public_key()
         return {
             "kty": "RSA",
@@ -289,41 +367,88 @@ class RSAKey(AbstractKey):
                 public_key.public_numbers().n.to_bytes(
                     public_key.key_size // 8,
                     "big",
-                )
+                ),
             ),
             "e": b64url_encode(
                 public_key.public_numbers().e.to_bytes(
                     (public_key.public_numbers().e.bit_length() + 7) // 8,
                     "big",
-                )
+                ),
             ),
             "use": "sig",
             "kid": kid or self.kid,
         }
 
     def public_key(self) -> rsa.RSAPublicKey:
-        """Get the public key."""
+        """Get the public key.
+
+        Returns:
+            The function result.
+
+        """
         return self.key.public_key()
 
     @property
     def type(self) -> str:
-        """Get the type of the key."""
+        """Key type identifier for RSA keys.
+
+        Returns:
+            The function result.
+
+        """
         return "RSA"
 
     @property
     def key_size(self) -> int:
-        """Get the size of the key."""
+        """RSA modulus size in bits.
+
+        Returns:
+            The function result.
+
+        """
         return self.key.key_size
 
     def sign(self, data: bytes) -> bytes:
-        """Sign data using the key."""
+        """Sign data using the key.
+
+        Returns:
+            The function result.
+
+        """
         return RSAAlgorithm.sign(data=data, key=self.key, alg=self.algorithm)
 
     def verify(self, data: bytes, signature: bytes) -> bool:
-        """Verify signature using the key."""
+        """Verify signature using the key.
+
+        Returns:
+            The function result.
+
+        """
         return RSAAlgorithm.verify(
             data=data,
             signature=signature,
             key=self.public_der(),
             alg=self.algorithm,
         )
+
+
+def _build_rsa_key(
+    loaded: PrivateKeyTypes,
+    algorithm: str | None,
+) -> RSAKey:
+    """Build an RSAKey from a cryptography private key.
+
+    Returns:
+        An RSAKey wrapping ``loaded``.
+
+    Raises:
+        TypeError: If ``loaded`` is not an RSA private key.
+
+    """
+    if not isinstance(loaded, rsa.RSAPrivateKey):
+        msg = "Expected an RSAPrivateKey"
+        raise TypeError(msg)
+    return RSAKey(key=loaded, algorithm=algorithm or "RS256")
+
+
+register_crypto_key_builder(rsa.RSAPrivateKey, _build_rsa_key)

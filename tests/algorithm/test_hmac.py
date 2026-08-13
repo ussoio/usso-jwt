@@ -2,14 +2,15 @@
 
 import pytest
 
-from src.usso_jwt.algorithms import HMACAlgorithm, HMACKey
+from usso_jwt import schemas, sign
+from usso_jwt.algorithms import HMAC_DEFAULT_KEY_SIZE, HMACAlgorithm, HMACKey
 
 
 def test_hmac_load_key_from_jwk(hmac_jwk: dict[str, object]) -> None:
     """Test loading HMAC key from JWK."""
     key = HMACAlgorithm.load_key(hmac_jwk)
     assert isinstance(key, bytes)
-    assert len(key) == 32
+    assert len(key) == HMAC_DEFAULT_KEY_SIZE
 
 
 def test_hmac_load_key_from_bytes(hmac_key: bytes) -> None:
@@ -31,13 +32,18 @@ def test_hmac_sign_verify(hmac_jwk: dict[str, object]) -> None:
 
     # Sign
     signature = HMACAlgorithm.sign(
-        data=signing_input, key=hmac_jwk, alg="HS256"
+        data=signing_input,
+        key=hmac_jwk,
+        alg="HS256",
     )
     assert isinstance(signature, bytes)
 
     # Verify
     assert HMACAlgorithm.verify(
-        data=signing_input, signature=signature, key=hmac_jwk, alg="HS256"
+        data=signing_input,
+        signature=signature,
+        key=hmac_jwk,
+        alg="HS256",
     )
 
     # Test invalid signature
@@ -63,10 +69,15 @@ def test_hmac_all_algorithms(hmac_jwk: dict[str, object]) -> None:
     for alg in ["HS256", "HS384", "HS512"]:
         hmac_jwk["alg"] = alg
         signature = HMACAlgorithm.sign(
-            data=signing_input, key=hmac_jwk, alg=alg
+            data=signing_input,
+            key=hmac_jwk,
+            alg=alg,
         )
         assert HMACAlgorithm.verify(
-            data=signing_input, signature=signature, key=hmac_jwk, alg=alg
+            data=signing_input,
+            signature=signature,
+            key=hmac_jwk,
+            alg=alg,
         )
 
 
@@ -75,7 +86,7 @@ def test_hmac_key_generate() -> None:
     key = HMACKey.generate(algorithm="HS256")
     assert key.algorithm == "HS256"
     assert key.type == "HMAC"
-    assert len(key.key) == 32
+    assert len(key.key) == HMAC_DEFAULT_KEY_SIZE
 
 
 def test_hmac_key_load_jwk(hmac_jwk: dict[str, object]) -> None:
@@ -83,10 +94,10 @@ def test_hmac_key_load_jwk(hmac_jwk: dict[str, object]) -> None:
     key = HMACKey.load_jwk(hmac_jwk)
     assert key.algorithm == "HS256"
     assert key.type == "HMAC"
-    assert len(key.key) == 32
+    assert len(key.key) == HMAC_DEFAULT_KEY_SIZE
 
 
-def test_hmac_key_sign_verify(hmac_jwk: dict[str, object]) -> None:
+def test_hmac_key_sign_verify() -> None:
     """Test HMAC key signing and verification."""
     key = HMACKey.generate(algorithm="HS256")
     signature = key.sign(data=b"test")
@@ -101,27 +112,37 @@ def test_hmac_key_type(hmac_jwk: dict[str, object]) -> None:
 
 @pytest.fixture
 def test_key() -> HMACKey:
+    """HMAC test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return HMACKey.generate()
 
 
 @pytest.fixture
 def test_token(
-    test_valid_payload: dict, test_header: dict, test_key: HMACKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: HMACKey,
 ) -> str:
-    from src.usso_jwt import sign
+    """HMAC-signed JWT string fixture.
 
-    jwt = sign.generate_jwt(
+    Returns:
+        The function result.
+
+    """
+    return sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
         key=test_key.key,
         alg=test_key.algorithm,
     )
-    return jwt
 
 
 def test_pem_key(test_token: str, test_key: HMACKey) -> None:
-    from src.usso_jwt import schemas
-
+    """Verify JWT using a raw HMAC key."""
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.key),

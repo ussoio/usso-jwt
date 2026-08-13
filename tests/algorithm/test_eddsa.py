@@ -4,8 +4,8 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from src.usso_jwt import schemas, sign
-from src.usso_jwt.algorithms import EdDSAAlgorithm, EdDSAKey
+from usso_jwt import schemas, sign
+from usso_jwt.algorithms import EdDSAAlgorithm, EdDSAKey
 
 
 def test_eddsa_load_key_from_jwk(eddsa_jwk: dict[str, object]) -> None:
@@ -37,13 +37,19 @@ def test_eddsa_sign_verify(eddsa_jwk: dict[str, object]) -> None:
     signature = EdDSAAlgorithm.sign(data=data, key=eddsa_jwk, alg="EdDSA")
     assert isinstance(signature, bytes)
     assert EdDSAAlgorithm.verify(
-        data=data, signature=signature, key=eddsa_jwk, alg="EdDSA"
+        data=data,
+        signature=signature,
+        key=eddsa_jwk,
+        alg="EdDSA",
     )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
     assert not EdDSAAlgorithm.verify(
-        data=data, signature=invalid_signature, key=eddsa_jwk, alg="EdDSA"
+        data=data,
+        signature=invalid_signature,
+        key=eddsa_jwk,
+        alg="EdDSA",
     )
 
 
@@ -78,7 +84,7 @@ def test_eddsa_key_load_pem(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = EdDSAKey.load_pem(pem, algorithm="EdDSA", password=b"password")
@@ -97,7 +103,7 @@ def test_eddsa_key_load_der(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = EdDSAKey.load_der(der, algorithm="EdDSA", password=b"password")
@@ -108,7 +114,7 @@ def test_eddsa_key_load_der(
     assert key.jwk().get("d") is None
 
 
-def test_eddsa_key_sign_verify(eddsa_jwk: dict[str, object]) -> None:
+def test_eddsa_key_sign_verify() -> None:
     """Test EdDSA key signing and verification."""
     key = EdDSAKey.generate(algorithm="EdDSA")
     signature = key.sign(data=b"test")
@@ -123,25 +129,37 @@ def test_eddsa_key_type(eddsa_jwk: dict[str, object]) -> None:
 
 @pytest.fixture
 def test_key() -> EdDSAKey:
+    """EdDSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return EdDSAKey.generate()
 
 
 @pytest.fixture
 def test_token(
-    test_valid_payload: dict, test_header: dict, test_key: EdDSAKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: EdDSAKey,
 ) -> str:
-    from src.usso_jwt import sign
+    """EdDSA-signed JWT string fixture.
 
-    jwt = sign.generate_jwt(
+    Returns:
+        The function result.
+
+    """
+    return sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
         key=test_key.private_der(),
         alg=test_key.algorithm,
     )
-    return jwt
 
 
 def test_pem_key(test_token: str, test_key: EdDSAKey) -> None:
+    """Verify JWT using an EdDSA public PEM key."""
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.public_pem()),
@@ -150,6 +168,7 @@ def test_pem_key(test_token: str, test_key: EdDSAKey) -> None:
 
 
 def test_ed25519_sign_verify() -> None:
+    """Sign and verify with Ed25519 algorithm."""
     headers = {
         "alg": "Ed25519",
         "typ": "JWT",

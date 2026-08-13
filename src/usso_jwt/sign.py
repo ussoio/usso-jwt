@@ -1,3 +1,7 @@
+"""JWT header construction and signing helpers."""
+
+from dataclasses import dataclass
+
 import json_advanced as json
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
@@ -15,10 +19,28 @@ PrivateKey = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class SignInput:
+    """Optional inputs for :func:`sign_jwt_parts`."""
+
+    signing_input: str | bytes | None = None
+    header: dict | None = None
+    payload: dict | None = None
+    password: bytes | None = None
+
+
 def create_jwt_header(
-    alg: str, kid: str | None = None, **kwargs: object
-) -> dict:
-    header = {"alg": alg, "typ": "JWT"}
+    alg: str,
+    kid: str | None = None,
+    **kwargs: object,
+) -> dict[str, object]:
+    """Build a JWT header with algorithm and optional key id.
+
+    Returns:
+        The function result.
+
+    """
+    header: dict[str, object] = {"alg": alg, "typ": "JWT"}
     if kid:
         header["kid"] = kid
     header.update(kwargs)
@@ -29,16 +51,28 @@ def sign_jwt_parts(
     *,
     key: PrivateKey,
     alg: str,
-    signing_input: str | bytes | None = None,
-    header: dict | None = None,
-    payload: dict | None = None,
-    password: bytes | None = None,
+    parts: SignInput | None = None,
 ) -> bytes:
-    """Sign JWT parts using the specified algorithm."""
+    """Sign JWT parts using the specified algorithm.
+
+    Returns:
+        The function result.
+
+    Raises:
+        ValueError: If the value is invalid or unsupported.
+
+    """
+    options = parts or SignInput()
+    signing_input = options.signing_input
+    header = options.header
+    payload = options.payload
+    password = options.password
+
     # Prepare signing input
     if header is None and payload is None and signing_input is None:
+        msg = "Either header, payload, or signing_input must be provided"
         raise ValueError(
-            "Either header, payload, or signing_input must be provided",
+            msg,
         )
     if signing_input is None:
         header_b64 = b64url_encode(json.dumps(header).encode())
@@ -66,14 +100,22 @@ def generate_jwt(
     alg: str,
     password: bytes | None = None,
 ) -> str:
+    """Create a compact JWT from header, payload, and key.
+
+    Returns:
+        The function result.
+
+    """
     header_b64 = b64url_encode(json.dumps(header).encode())
     payload_b64 = b64url_encode(json.dumps(payload).encode())
     signing_input = f"{header_b64}.{payload_b64}"
     signature = sign_jwt_parts(
         key=key,
         alg=alg,
-        signing_input=signing_input.encode(),
-        password=password,
+        parts=SignInput(
+            signing_input=signing_input.encode(),
+            password=password,
+        ),
     )
 
     # Return complete JWT

@@ -1,6 +1,9 @@
+"""JWT parsing, claim checks, and signature verification."""
+
 import json
 import os
 import time
+from dataclasses import dataclass
 
 import httpx
 from cachetools import TTLCache, cached
@@ -23,7 +26,30 @@ from .exceptions import (
 from .utils import b64url_decode, b64url_encode
 
 
+@dataclass(frozen=True, slots=True)
+class VerifyOptions:
+    """Optional verification inputs for :func:`verify_jwt`."""
+
+    jwks_url: str | None = None
+    kid: str | None = None
+    jwk: dict | None = None
+    expected_audience: str | list[str] | None = None
+    expected_acr: str | list[str] | None = None
+    expected_issuer: str | list[str] | None = None
+    expected_token_type: str | list[str] | None = None
+    maximum_age: int | None = None
+
+
 def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
+    """Split a compact JWT into header, payload, signature, and input.
+
+    Returns:
+        The function result.
+
+    Raises:
+        JWTInvalidFormatError: If the token format is invalid.
+
+    """
     try:
         header_b64, payload_b64, signature_b64 = token.split(".")
         header = json.loads(b64url_decode(header_b64))
@@ -31,42 +57,63 @@ def extract_jwt_parts(token: str) -> tuple[dict, dict, bytes, bytes]:
         signature = b64url_decode(signature_b64)
         signing_input = f"{header_b64}.{payload_b64}".encode()
     except (ValueError, json.JSONDecodeError) as e:
-        raise JWTInvalidFormatError() from e
+        raise JWTInvalidFormatError from e
     return header, payload, signature, signing_input
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=3600))
 def fetch_jwk(*, jwks_url: str, kid: str) -> dict:
+    """Fetch a JWK by ``kid`` from a JWKS URL.
+
+    Returns:
+        The function result.
+
+    Raises:
+        JWKNotFoundError: If the JWK cannot be resolved.
+
+    """
     resp = httpx.get(jwks_url, proxy=os.getenv("PROXY"))
     resp.raise_for_status()
     jwks = resp.json()
     for key in jwks["keys"]:
         if key["kid"] == kid:
             return key
-    raise JWKNotFoundError()
+    raise JWKNotFoundError
 
 
 def verify_temporal_claims(*, payload: dict) -> bool:
+    """Validate exp, nbf, and iat temporal claims.
+
+    Returns:
+        The function result.
+
+    Raises:
+        JWTExpiredError: If the token is expired.
+        JWTIssuedInFutureError: If the token was issued in the future.
+        JWTNotValidYetError: If the token is not yet valid.
+
+    """
     now = int(time.time())
     if "exp" in payload and now >= payload["exp"]:
-        raise JWTExpiredError()
+        raise JWTExpiredError
     if "nbf" in payload and now < payload["nbf"]:
-        raise JWTNotValidYetError()
+        raise JWTNotValidYetError
     if "iat" in payload and now < payload["iat"] - 60:
-        raise JWTIssuedInFutureError()
+        raise JWTIssuedInFutureError
     return True
 
 
 def _validate_audience(
-    payload: dict, expected_audience: str | list[str] | None
+    payload: dict,
+    expected_audience: str | list[str] | None,
 ) -> None:
     if expected_audience is not None:
         if "aud" not in payload:
-            raise JWTMissingAudienceError()
+            raise JWTMissingAudienceError
         if isinstance(expected_audience, str):
             expected_audience = [expected_audience]
         if payload["aud"] not in expected_audience:
-            raise JWTInvalidAudienceError()
+            raise JWTInvalidAudienceError
 
 
 def _validate_acr(payload: dict, expected_acr: str | list[str] | None) -> None:
@@ -74,21 +121,23 @@ def _validate_acr(payload: dict, expected_acr: str | list[str] | None) -> None:
         if isinstance(expected_acr, str):
             expected_acr = [expected_acr]
         if payload["acr"] not in expected_acr:
-            raise JWTInvalidACRError()
+            raise JWTInvalidACRError
 
 
 def _validate_issuer(
-    payload: dict, expected_issuer: str | list[str] | None
+    payload: dict,
+    expected_issuer: str | list[str] | None,
 ) -> None:
     if "iss" in payload and expected_issuer is not None:
         if isinstance(expected_issuer, str):
             expected_issuer = [expected_issuer]
         if payload["iss"] not in expected_issuer:
-            raise JWTInvalidIssuerError()
+            raise JWTInvalidIssuerError
 
 
 def _validate_token_type(
-    payload: dict, expected_token_type: str | list[str] | None
+    payload: dict,
+    expected_token_type: str | list[str] | None,
 ) -> None:
     if "token_type" in payload and expected_token_type is not None:
         if isinstance(expected_token_type, str):
@@ -108,9 +157,11 @@ def verify_claims(
     expected_issuer: str | list[str] | None = None,
     expected_token_type: str | list[str] | None = None,
 ) -> bool:
-    """
-    Verify additional JWT claims like audience, acr, and issuer if they
-    are present.
+    """Verify audience, ACR, issuer, and token_type claims when set.
+
+    Returns:
+        The function result.
+
     """
     _validate_audience(payload, expected_audience)
     _validate_acr(payload, expected_acr)
@@ -126,8 +177,7 @@ def verify_signature(
     data: bytes | str | dict,
     signature: bytes,
 ) -> bool:
-    """
-    Verify a JWT signature using the specified algorithm and key.
+    """Verify a JWT signature using the specified algorithm and key.
 
     Args:
         alg: The algorithm used for signing
@@ -140,6 +190,7 @@ def verify_signature(
 
     Raises:
         JWTInvalidSignatureError: If the signature verification fails
+
     """
     if isinstance(data, dict):
         signing_input = b64url_encode(json.dumps(data)).encode()
@@ -150,48 +201,65 @@ def verify_signature(
 
     algorithm = get_algorithm(alg)
     if not algorithm.verify(
-        data=signing_input, signature=signature, key=key, alg=alg
+        data=signing_input,
+        signature=signature,
+        key=key,
+        alg=alg,
     ):
-        raise JWTInvalidSignatureError()
+        raise JWTInvalidSignatureError
     return True
 
 
 def verify_jwt(
     *,
     token: str,
-    jwks_url: str | None = None,
-    kid: str | None = None,
-    jwk: dict | None = None,
-    expected_audience: str | list[str] | None = None,
-    expected_acr: str | list[str] | None = None,
-    expected_issuer: str | list[str] | None = None,
-    expected_token_type: str | list[str] | None = None,
-    maximum_age: int | None = None,
+    options: VerifyOptions | None = None,
 ) -> bool:
+    """Verify JWT signature and standard claim constraints.
+
+    Returns:
+        The function result.
+
+    Raises:
+        JWKNotFoundError: If the JWK cannot be resolved.
+        JWTInvalidSignatureError: If signature verification fails.
+
+    """
+    opts = options or VerifyOptions()
     header, payload, signature, signing_input = extract_jwt_parts(token)
+    jwk = opts.jwk
     if jwk is None:
-        if jwks_url is None or kid is None:
-            raise JWKNotFoundError()
-        jwk = fetch_jwk(jwks_url=jwks_url, kid=kid)
+        if opts.jwks_url is None or opts.kid is None:
+            raise JWKNotFoundError
+        jwk = fetch_jwk(jwks_url=opts.jwks_url, kid=opts.kid)
 
     if not verify_signature(
-        alg=header["alg"], key=jwk, data=signing_input, signature=signature
+        alg=header["alg"],
+        key=jwk,
+        data=signing_input,
+        signature=signature,
     ):
-        raise JWTInvalidSignatureError()
+        raise JWTInvalidSignatureError
 
     verify_temporal_claims(payload=payload)
     verify_claims(
         payload=payload,
-        expected_audience=expected_audience,
-        expected_acr=expected_acr,
-        expected_issuer=expected_issuer,
-        expected_token_type=expected_token_type,
+        expected_audience=opts.expected_audience,
+        expected_acr=opts.expected_acr,
+        expected_issuer=opts.expected_issuer,
+        expected_token_type=opts.expected_token_type,
     )
-    if maximum_age is not None:
-        verify_maximum_age(payload=payload, maximum_age=maximum_age)
+    if opts.maximum_age is not None:
+        verify_maximum_age(payload=payload, maximum_age=opts.maximum_age)
     return True
 
 
 def verify_maximum_age(payload: dict, maximum_age: int) -> None:
+    """Raise if the token's ``iat`` exceeds the allowed age.
+
+    Raises:
+        JWTMaximumAgeError: If the token exceeds the maximum age.
+
+    """
     if "iat" in payload and payload["iat"] + maximum_age < time.time():
-        raise JWTMaximumAgeError()
+        raise JWTMaximumAgeError

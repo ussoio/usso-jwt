@@ -1,7 +1,11 @@
+"""JWT algorithm and token-type enumerations."""
+
 from enum import StrEnum
 
 
 class Algorithm(StrEnum):
+    """Supported JWT signing algorithms."""
+
     # HMAC with SHA-2
     HS256 = "HS256"  # HMAC with SHA-256
     HS384 = "HS384"  # HMAC with SHA-384
@@ -28,6 +32,12 @@ class Algorithm(StrEnum):
 
     @property
     def kty(self) -> str:
+        """JWK ``kty`` value for this algorithm.
+
+        Returns:
+            The function result.
+
+        """
         return {
             Algorithm.HS256: "oct",
             Algorithm.HS384: "oct",

@@ -31,13 +31,7 @@ pip install usso-jwt
 from usso_jwt import JWT
 
 # Create a JWT with a payload
-jwt = JWT(
-    payload={
-        "sub": "1234567890",
-        "name": "John Doe",
-        "iat": 1516239022
-    }
-)
+jwt = JWT(payload={"sub": "1234567890", "name": "John Doe", "iat": 1516239022})
 
 # Sign with HMAC
 token = jwt.sign(hmac_key, "HS256")

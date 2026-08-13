@@ -6,18 +6,28 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
-from src.usso_jwt.utils import b64url_encode
+from usso_jwt.utils import b64url_encode
 
 
 @pytest.fixture
 def hmac_key() -> bytes:
-    """Generate a test HMAC key."""
+    """Generate a test HMAC key.
+
+    Returns:
+        The function result.
+
+    """
     return b"test_key_32_bytes_long_for_hmac!"
 
 
 @pytest.fixture
 def hmac_jwk(hmac_key: bytes) -> dict[str, object]:
-    """Create a JWK for HMAC key."""
+    """Create a JWK for HMAC key.
+
+    Returns:
+        The function result.
+
+    """
     return {
         "kty": "oct",
         "k": b64url_encode(hmac_key),
@@ -29,7 +39,12 @@ def hmac_jwk(hmac_key: bytes) -> dict[str, object]:
 
 @pytest.fixture
 def rsa_private_key() -> rsa.RSAPrivateKey:
-    """Generate a test RSA private key."""
+    """Generate a test RSA private key.
+
+    Returns:
+        The function result.
+
+    """
     return rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -38,7 +53,12 @@ def rsa_private_key() -> rsa.RSAPrivateKey:
 
 @pytest.fixture
 def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict[str, object]:
-    """Generate a RSA JWK."""
+    """Generate a RSA JWK.
+
+    Returns:
+        The function result.
+
+    """
     numbers = rsa_private_key.private_numbers()
     der_public_key = rsa_private_key.public_key().public_bytes(
         encoding=serialization.Encoding.DER,
@@ -62,7 +82,12 @@ def rsa_jwk(rsa_private_key: rsa.RSAPrivateKey) -> dict[str, object]:
 
 @pytest.fixture
 def rsa_private_key_2048() -> rsa.RSAPrivateKey:
-    """Generate a test RSA private key (2048 bits)."""
+    """Generate a test RSA private key (2048 bits).
+
+    Returns:
+        The function result.
+
+    """
     return rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -72,7 +97,12 @@ def rsa_private_key_2048() -> rsa.RSAPrivateKey:
 
 @pytest.fixture
 def rsa_private_key_4096() -> rsa.RSAPrivateKey:
-    """Generate a test RSA private key."""
+    """Generate a test RSA private key.
+
+    Returns:
+        The function result.
+
+    """
     return rsa.generate_private_key(
         public_exponent=65537,
         key_size=4096,  # 512 bytes
@@ -81,7 +111,12 @@ def rsa_private_key_4096() -> rsa.RSAPrivateKey:
 
 @pytest.fixture
 def rsa_private_key_8192() -> rsa.RSAPrivateKey:
-    """Generate a test RSA private key."""
+    """Generate a test RSA private key.
+
+    Returns:
+        The function result.
+
+    """
     return rsa.generate_private_key(
         public_exponent=65537,
         key_size=8192,  # 1024 bits
@@ -90,7 +125,12 @@ def rsa_private_key_8192() -> rsa.RSAPrivateKey:
 
 @pytest.fixture
 def ecdsa_private_key() -> ec.EllipticCurvePrivateKey:
-    """Generate a test ECDSA private key for P-256 curve."""
+    """Generate a test ECDSA private key for P-256 curve.
+
+    Returns:
+        The function result.
+
+    """
     return ec.generate_private_key(ec.SECP256R1())
 
 
@@ -98,7 +138,12 @@ def ecdsa_private_key() -> ec.EllipticCurvePrivateKey:
 def ecdsa_jwk(
     ecdsa_private_key: ec.EllipticCurvePrivateKey,
 ) -> dict[str, object]:
-    """Create a JWK for ECDSA key."""
+    """Create a JWK for ECDSA key.
+
+    Returns:
+        The function result.
+
+    """
     public_numbers = ecdsa_private_key.public_key().public_numbers()
     private_numbers = ecdsa_private_key.private_numbers()
 
@@ -107,18 +152,21 @@ def ecdsa_jwk(
         "crv": "P-256",
         "x": b64url_encode(
             public_numbers.x.to_bytes(
-                (public_numbers.x.bit_length() + 7) // 8, "big"
-            )
+                (public_numbers.x.bit_length() + 7) // 8,
+                "big",
+            ),
         ),
         "y": b64url_encode(
             public_numbers.y.to_bytes(
-                (public_numbers.y.bit_length() + 7) // 8, "big"
-            )
+                (public_numbers.y.bit_length() + 7) // 8,
+                "big",
+            ),
         ),
         "d": b64url_encode(
             private_numbers.private_value.to_bytes(
-                (private_numbers.private_value.bit_length() + 7) // 8, "big"
-            )
+                (private_numbers.private_value.bit_length() + 7) // 8,
+                "big",
+            ),
         ),
         "alg": "ES256",
         "use": "sig",
@@ -129,7 +177,12 @@ def ecdsa_jwk(
 def ecdsa_jwk_256(
     ecdsa_private_key: ec.EllipticCurvePrivateKey,
 ) -> dict[str, object]:
-    """Generate a ECDSA JWK for P-256 curve."""
+    """Generate a ECDSA JWK for P-256 curve.
+
+    Returns:
+        The function result.
+
+    """
     numbers = ecdsa_private_key.private_numbers()
     der_public_key = ecdsa_private_key.public_key().public_bytes(
         encoding=serialization.Encoding.DER,
@@ -149,7 +202,12 @@ def ecdsa_jwk_256(
 
 @pytest.fixture
 def ecdsa_jwk_384() -> dict[str, object]:
-    """Generate a ECDSA JWK for P-384 curve."""
+    """Generate a ECDSA JWK for P-384 curve.
+
+    Returns:
+        The function result.
+
+    """
     private_key = ec.generate_private_key(ec.SECP384R1())
     numbers = private_key.private_numbers()
     der_public_key = private_key.public_key().public_bytes(
@@ -171,7 +229,12 @@ def ecdsa_jwk_384() -> dict[str, object]:
 
 @pytest.fixture
 def ecdsa_jwk_512() -> dict[str, object]:
-    """Generate a ECDSA JWK for P-521 curve."""
+    """Generate a ECDSA JWK for P-521 curve.
+
+    Returns:
+        The function result.
+
+    """
     private_key = ec.generate_private_key(ec.SECP521R1())
     numbers = private_key.private_numbers()
     der_public_key = private_key.public_key().public_bytes(
@@ -192,7 +255,12 @@ def ecdsa_jwk_512() -> dict[str, object]:
 
 @pytest.fixture
 def eddsa_private_key() -> ed25519.Ed25519PrivateKey:
-    """Generate a test EdDSA private key."""
+    """Generate a test EdDSA private key.
+
+    Returns:
+        The function result.
+
+    """
     return ed25519.Ed25519PrivateKey.generate()
 
 
@@ -200,7 +268,12 @@ def eddsa_private_key() -> ed25519.Ed25519PrivateKey:
 def eddsa_jwk(
     eddsa_private_key: ed25519.Ed25519PrivateKey,
 ) -> dict[str, object]:
-    """Create a JWK for EdDSA key."""
+    """Create a JWK for EdDSA key.
+
+    Returns:
+        The function result.
+
+    """
     public_key = eddsa_private_key.public_key()
     der_public_key = public_key.public_bytes(
         encoding=serialization.Encoding.DER,

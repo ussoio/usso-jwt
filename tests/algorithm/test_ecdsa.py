@@ -4,7 +4,9 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from src.usso_jwt.algorithms import ECDSAAlgorithm, ECDSAKey
+from usso_jwt import sign
+from usso_jwt.algorithms import ECDSAAlgorithm, ECDSAKey
+from usso_jwt.schemas import JWT, JWTConfig
 
 
 def test_ecdsa_load_key_from_jwk(ecdsa_jwk: dict[str, object]) -> None:
@@ -22,7 +24,7 @@ def test_ecdsa_load_key_from_pem(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = ECDSAKey.load_pem(pem, algorithm="ES256", password=b"password")
@@ -42,7 +44,7 @@ def test_ecdsa_load_key_from_der(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = ECDSAKey.load_der(der, algorithm="ES256", password=b"password")
@@ -60,11 +62,16 @@ def test_ecdsa_sign_verify(ecdsa_jwk: dict[str, object]) -> None:
 
     # Test ES256
     signature = ECDSAAlgorithm.sign(
-        data=signing_input, key=ecdsa_jwk, alg="ES256"
+        data=signing_input,
+        key=ecdsa_jwk,
+        alg="ES256",
     )
     assert isinstance(signature, bytes)
     assert ECDSAAlgorithm.verify(
-        data=signing_input, signature=signature, key=ecdsa_jwk, alg="ES256"
+        data=signing_input,
+        signature=signature,
+        key=ecdsa_jwk,
+        alg="ES256",
     )
 
     # Test invalid signature
@@ -98,7 +105,10 @@ def test_ecdsa_all_algorithms(
     ]:
         signature = ECDSAAlgorithm.sign(data=signing_input, key=jwk, alg=alg)
         assert ECDSAAlgorithm.verify(
-            data=signing_input, signature=signature, key=jwk, alg=alg
+            data=signing_input,
+            signature=signature,
+            key=jwk,
+            alg=alg,
         )
 
 
@@ -128,7 +138,7 @@ def test_ecdsa_key_load_pem(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = ECDSAKey.load_pem(pem, algorithm="ES256", password=b"password")
@@ -139,7 +149,7 @@ def test_ecdsa_key_load_pem(
     assert key.jwk()["y"] is not None
 
 
-def test_ecdsa_key_sign_verify(ecdsa_jwk_256: dict[str, object]) -> None:
+def test_ecdsa_key_sign_verify() -> None:
     """Test ECDSA key signing and verification."""
     key = ECDSAKey.generate(algorithm="ES256")
     signature = key.sign(data=b"test")
@@ -154,27 +164,37 @@ def test_ecdsa_key_type(ecdsa_jwk_256: dict[str, object]) -> None:
 
 @pytest.fixture
 def test_key() -> ECDSAKey:
+    """ECDSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return ECDSAKey.generate()
 
 
 @pytest.fixture
 def test_token(
-    test_valid_payload: dict, test_header: dict, test_key: ECDSAKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: ECDSAKey,
 ) -> str:
-    from src.usso_jwt import sign
+    """ECDSA-signed JWT string fixture.
 
-    jwt = sign.generate_jwt(
+    Returns:
+        The function result.
+
+    """
+    return sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
         key=test_key.private_der(),
         alg=test_key.algorithm,
     )
-    return jwt
 
 
 def test_pem_key(test_token: str, test_key: ECDSAKey) -> None:
-    from src.usso_jwt.schemas import JWT, JWTConfig
-
+    """Verify JWT using an ECDSA public PEM key."""
     jwt_obj = JWT(
         token=test_token,
         config=JWTConfig(key=test_key.public_pem()),

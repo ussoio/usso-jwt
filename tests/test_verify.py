@@ -1,12 +1,15 @@
+"""Tests for JWT verification helpers."""
+
 import httpx
 import pytest
 
-from src.usso_jwt import exceptions, sign, verify
-from src.usso_jwt.algorithms import AbstractKey
-from src.usso_jwt.enums import TokenType
+from usso_jwt import exceptions, sign, verify
+from usso_jwt.algorithms import AbstractKey
+from usso_jwt.enums import TokenType
 
 
 def test_fetch_jwk() -> None:
+    """Fetch a JWK by kid from a remote JWKS."""
     jwks_url = "https://www.googleapis.com/oauth2/v3/certs"
     jwks = httpx.get(jwks_url).json()
     jwk = jwks["keys"][0]
@@ -20,15 +23,20 @@ def test_fetch_jwk() -> None:
 
 
 def test_fetch_failed_jwk() -> None:
+    """Raise when kid is missing from JWKS."""
     with pytest.raises(exceptions.JWKNotFoundError):
         verify.fetch_jwk(
-            jwks_url="https://www.googleapis.com/oauth2/v3/certs", kid="123"
+            jwks_url="https://www.googleapis.com/oauth2/v3/certs",
+            kid="123",
         )
 
 
 def test_invalid_signature(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens with a corrupted signature."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -37,12 +45,18 @@ def test_invalid_signature(
     )
     jwt = jwt[:-1]  # + chr(ord(jwt[-1]) + 1)
     with pytest.raises(exceptions.JWTInvalidFormatError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk())
+        verify.verify_jwt(
+            token=jwt,
+            options=verify.VerifyOptions(jwk=test_key.jwk()),
+        )
 
 
 def test_expired_payload(
-    test_expired_payload: dict, test_header: dict, test_key: AbstractKey
+    test_expired_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Verify expired tokens raise JWTExpiredError."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_expired_payload,
@@ -50,12 +64,18 @@ def test_expired_payload(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTExpiredError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk())
+        verify.verify_jwt(
+            token=jwt,
+            options=verify.VerifyOptions(jwk=test_key.jwk()),
+        )
 
 
 def test_nbf_future_payload(
-    test_future_nbf_payload: dict, test_header: dict, test_key: AbstractKey
+    test_future_nbf_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens not valid yet via nbf."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_future_nbf_payload,
@@ -63,12 +83,18 @@ def test_nbf_future_payload(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTNotValidYetError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk())
+        verify.verify_jwt(
+            token=jwt,
+            options=verify.VerifyOptions(jwk=test_key.jwk()),
+        )
 
 
 def test_future_payload(
-    test_future_payload: dict, test_header: dict, test_key: AbstractKey
+    test_future_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens issued in the future."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_future_payload,
@@ -76,12 +102,18 @@ def test_future_payload(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTIssuedInFutureError):
-        verify.verify_jwt(token=jwt, jwk=test_key.jwk())
+        verify.verify_jwt(
+            token=jwt,
+            options=verify.VerifyOptions(jwk=test_key.jwk()),
+        )
 
 
 def test_missing_audience(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens missing expected audience."""
     payload = test_valid_payload.copy()
     payload.pop("aud", None)
     jwt = sign.generate_jwt(
@@ -92,13 +124,20 @@ def test_missing_audience(
     )
     with pytest.raises(exceptions.JWTMissingAudienceError):
         verify.verify_jwt(
-            token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt"
+            token=jwt,
+            options=verify.VerifyOptions(
+                jwk=test_key.jwk(),
+                expected_audience="test_jwt",
+            ),
         )
 
 
 def test_invalid_audience(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens with wrong audience."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -107,13 +146,20 @@ def test_invalid_audience(
     )
     with pytest.raises(exceptions.JWTInvalidAudienceError):
         verify.verify_jwt(
-            token=jwt, jwk=test_key.jwk(), expected_audience="test_jwt"
+            token=jwt,
+            options=verify.VerifyOptions(
+                jwk=test_key.jwk(),
+                expected_audience="test_jwt",
+            ),
         )
 
 
 def test_invalid_token_type(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens with wrong token type."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -123,14 +169,19 @@ def test_invalid_token_type(
     with pytest.raises(exceptions.JWTInvalidTokenTypeError):
         verify.verify_jwt(
             token=jwt,
-            jwk=test_key.jwk(),
-            expected_token_type=TokenType.REFRESH,
+            options=verify.VerifyOptions(
+                jwk=test_key.jwk(),
+                expected_token_type=TokenType.REFRESH,
+            ),
         )
 
 
 def test_invalid_acr(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens with wrong ACR claim."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -140,14 +191,19 @@ def test_invalid_acr(
     with pytest.raises(exceptions.JWTInvalidACRError):
         verify.verify_jwt(
             token=jwt,
-            jwk=test_key.jwk(),
-            expected_acr="mfa",
+            options=verify.VerifyOptions(
+                jwk=test_key.jwk(),
+                expected_acr="mfa",
+            ),
         )
 
 
 def test_invalid_issuer(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Reject tokens with wrong issuer."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -157,6 +213,8 @@ def test_invalid_issuer(
     with pytest.raises(exceptions.JWTInvalidIssuerError):
         verify.verify_jwt(
             token=jwt,
-            jwk=test_key.jwk(),
-            expected_issuer="test_jwt",
+            options=verify.VerifyOptions(
+                jwk=test_key.jwk(),
+                expected_issuer="test_jwt",
+            ),
         )

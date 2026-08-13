@@ -1,9 +1,21 @@
+"""Registry mapping JWT algorithm names to managers."""
+
 from .base import KeyAlgorithm
+from .ecdsa import ECDSAAlgorithm
+from .eddsa import EdDSAAlgorithm
+from .hmac import HMACAlgorithm
+from .rsa import RSAAlgorithm
+
+_ALGORITHM_MANAGERS: tuple[type[KeyAlgorithm], ...] = (
+    ECDSAAlgorithm,
+    EdDSAAlgorithm,
+    HMACAlgorithm,
+    RSAAlgorithm,
+)
 
 
 def get_algorithm(alg: str) -> type[KeyAlgorithm]:
-    """
-    Get the appropriate algorithm manager for the given algorithm.
+    """Return the algorithm manager class for ``alg``.
 
     Args:
         alg: The algorithm name
@@ -14,17 +26,11 @@ def get_algorithm(alg: str) -> type[KeyAlgorithm]:
 
     Raises:
         ValueError: If the algorithm is not supported
+
     """
-    # Import subclasses so KeyAlgorithm.__subclasses__() is populated.
-    from .ecdsa import ECDSAAlgorithm
-    from .eddsa import EdDSAAlgorithm
-    from .hmac import HMACAlgorithm
-    from .rsa import RSAAlgorithm
-
-    _ = (ECDSAAlgorithm, EdDSAAlgorithm, HMACAlgorithm, RSAAlgorithm)
-
-    for algo in KeyAlgorithm.__subclasses__():
+    for algo in _ALGORITHM_MANAGERS:
         if alg.upper() in algo.SUPPORTED_ALGORITHMS:
             return algo
 
-    raise ValueError(f"Unsupported algorithm: {alg}")
+    msg = f"Unsupported algorithm: {alg}"
+    raise ValueError(msg)

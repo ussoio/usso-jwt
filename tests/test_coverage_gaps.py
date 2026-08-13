@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
-from src.usso_jwt import (
+from usso_jwt import (
     config,
     enums,
     exceptions,
@@ -17,7 +17,7 @@ from src.usso_jwt import (
     utils,
     verify,
 )
-from src.usso_jwt.algorithms import (
+from usso_jwt.algorithms import (
     AbstractKey,
     ECDSAAlgorithm,
     ECDSAKey,
@@ -28,44 +28,74 @@ from src.usso_jwt.algorithms import (
     RSAAlgorithm,
     RSAKey,
     convert_key_to_jwk,
+    from_cryptography_key,
     get_algorithm,
 )
+from usso_jwt.algorithms import ecdsa as ecdsa_mod
+from usso_jwt.algorithms import eddsa as eddsa_mod
+from usso_jwt.algorithms import rsa as rsa_mod
 
 
 @pytest.fixture
 def rsa_key() -> RSAKey:
+    """RSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return RSAKey.generate(algorithm="RS256", key_size=2048)
 
 
 @pytest.fixture
 def ecdsa_key() -> ECDSAKey:
+    """ECDSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return ECDSAKey.generate(algorithm="ES256")
 
 
 @pytest.fixture
 def eddsa_key() -> EdDSAKey:
+    """EdDSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return EdDSAKey.generate(algorithm="EdDSA")
 
 
 @pytest.fixture
 def hmac_key_bytes() -> bytes:
+    """Raw HMAC key bytes fixture.
+
+    Returns:
+        The function result.
+
+    """
     return b"test_key_32_bytes_long_for_hmac!"
 
 
 def test_convert_key_to_jwk_unsupported() -> None:
+    """Reject unsupported PEM keys in convert_key_to_jwk."""
     with (
         patch(
-            "src.usso_jwt.algorithms.base.serialization.load_pem_public_key",
+            "usso_jwt.algorithms.base.serialization.load_pem_public_key",
             return_value=MagicMock(),
         ),
         pytest.raises(TypeError, match="Unsupported algorithm"),
     ):
         convert_key_to_jwk(
-            b"-----BEGIN PUBLIC KEY-----\nMFkw\n-----END PUBLIC KEY-----"
+            b"-----BEGIN PUBLIC KEY-----\nMFkw\n-----END PUBLIC KEY-----",
         )
 
 
 def test_generate_algorithm_and_load_jwk_errors() -> None:
+    """Cover generate_algorithm and load_jwk error paths."""
     assert isinstance(AbstractKey.generate_algorithm("EdDSA"), EdDSAKey)
     assert isinstance(AbstractKey.generate_algorithm("RS256"), RSAKey)
     assert isinstance(AbstractKey.generate_algorithm("ES256"), ECDSAKey)
@@ -82,17 +112,33 @@ def test_generate_algorithm_and_load_jwk_errors() -> None:
 
 
 def test_from_cryptography_and_load_paths(
-    rsa_key: RSAKey, ecdsa_key: ECDSAKey
+    rsa_key: RSAKey,
+    ecdsa_key: ECDSAKey,
+    eddsa_key: EdDSAKey,
 ) -> None:
+    """Cover from_cryptography_key and load helpers."""
     assert isinstance(
-        AbstractKey.from_cryptography_key(rsa_key.key), RSAKey
+        AbstractKey.from_cryptography_key(rsa_key.key),
+        RSAKey,
     )
     assert isinstance(
-        AbstractKey.from_cryptography_key(ecdsa_key.key), ECDSAKey
+        AbstractKey.from_cryptography_key(ecdsa_key.key),
+        ECDSAKey,
+    )
+    assert isinstance(
+        from_cryptography_key(eddsa_key.key),
+        EdDSAKey,
     )
 
     with pytest.raises(TypeError, match="Unsupported private key type"):
         AbstractKey.from_cryptography_key(MagicMock())
+
+    with pytest.raises(TypeError, match="Expected an RSAPrivateKey"):
+        rsa_mod._build_rsa_key(MagicMock(), None)
+    with pytest.raises(TypeError, match="Expected an EllipticCurvePrivateKey"):
+        ecdsa_mod._build_ecdsa_key(MagicMock(), None)
+    with pytest.raises(TypeError, match="Expected an Ed25519PrivateKey"):
+        eddsa_mod._build_eddsa_key(MagicMock(), None)
 
     loaded = AbstractKey.load(rsa_key.private_der())
     assert isinstance(loaded, RSAKey)
@@ -103,6 +149,7 @@ def test_from_cryptography_and_load_paths(
 
 
 def test_octet_key_encoding_errors() -> None:
+    """Reject PEM/DER encoding for octet keys."""
     class OctetKey(AbstractKey):
         SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {"OCT"}
 
@@ -112,22 +159,51 @@ def test_octet_key_encoding_errors() -> None:
 
         @property
         def key(self) -> bytes:
+            """Raw octet key material.
+
+            Returns:
+                The function result.
+
+            """
             return self._key
 
         @classmethod
         def generate(cls, **kwargs: object) -> "OctetKey":
+            """Create a new OctetKey instance.
+
+            Returns:
+                The function result.
+
+            """
             del kwargs
             return cls()
 
         def public_key(self) -> bytes:
+            """Return the public octet key bytes.
+
+            Returns:
+                The function result.
+
+            """
             return self._key
 
         def jwk(self, kid: str | None = None) -> dict:
-            del kid
-            return {"kty": "oct"}
+            """Return a minimal octet JWK dict.
+
+            Returns:
+                The function result.
+
+            """
+            return {"kty": "oct", "alg": self.algorithm, "kid": kid}
 
         @property
         def type(self) -> str:
+            """Key type identifier.
+
+            Returns:
+                The function result.
+
+            """
             return "OCT"
 
     key = OctetKey()
@@ -142,8 +218,10 @@ def test_octet_key_encoding_errors() -> None:
 
 
 def test_ecdsa_error_and_extra_paths(
-    ecdsa_key: ECDSAKey, rsa_key: RSAKey
+    ecdsa_key: ECDSAKey,
+    rsa_key: RSAKey,
 ) -> None:
+    """Cover ECDSA load, verify, and generate error paths."""
     pem = ecdsa_key.private_pem()
     assert isinstance(ECDSAAlgorithm.load_key(pem), ec.EllipticCurvePrivateKey)
 
@@ -155,12 +233,15 @@ def test_ecdsa_error_and_extra_paths(
 
     with pytest.raises(ValueError, match="Unsupported ECDSA algorithm"):
         ECDSAAlgorithm.load_jwk(
-            {"alg": "ES128", "d": "AQ", "x": "AQ", "y": "AQ"}
+            {"alg": "ES128", "d": "AQ", "x": "AQ", "y": "AQ"},
         )
 
     with pytest.raises(ValueError, match="Unsupported ECDSA algorithm"):
         ECDSAAlgorithm.verify(
-            data=b"x", signature=b"y", key={"x": "AQ", "y": "AQ"}, alg="ES128"
+            data=b"x",
+            signature=b"y",
+            key={"x": "AQ", "y": "AQ"},
+            alg="ES128",
         )
 
     with pytest.raises(TypeError, match="Expected an EllipticCurvePublicKey"):
@@ -209,11 +290,14 @@ def test_ecdsa_error_and_extra_paths(
 
 
 def test_eddsa_error_and_extra_paths(
-    eddsa_key: EdDSAKey, rsa_key: RSAKey
+    eddsa_key: EdDSAKey,
+    rsa_key: RSAKey,
 ) -> None:
+    """Cover EdDSA load, verify, and generate error paths."""
     pem = eddsa_key.private_pem()
     assert isinstance(
-        EdDSAAlgorithm.load_key(pem), ed25519.Ed25519PrivateKey
+        EdDSAAlgorithm.load_key(pem),
+        ed25519.Ed25519PrivateKey,
     )
 
     with pytest.raises(TypeError, match="Unsupported EdDSA key type"):
@@ -224,7 +308,10 @@ def test_eddsa_error_and_extra_paths(
 
     with pytest.raises(ValueError, match="Unsupported EdDSA algorithm"):
         EdDSAAlgorithm.verify(
-            data=b"x", signature=b"y", key={"x": "AQ"}, alg="HS256"
+            data=b"x",
+            signature=b"y",
+            key={"x": "AQ"},
+            alg="HS256",
         )
 
     with pytest.raises(TypeError, match="Expected an Ed25519PublicKey"):
@@ -265,12 +352,16 @@ def test_eddsa_error_and_extra_paths(
 
 
 def test_hmac_error_and_extra_paths(hmac_key_bytes: bytes) -> None:
+    """Cover HMAC load, verify, and key helper paths."""
     with pytest.raises(TypeError, match="Unsupported HMAC key type"):
         HMACAlgorithm.load_key(123)
 
     with pytest.raises(ValueError, match="Unsupported HMAC algorithm"):
         HMACAlgorithm.verify(
-            data=b"x", signature=b"y", key=hmac_key_bytes, alg="HS128"
+            data=b"x",
+            signature=b"y",
+            key=hmac_key_bytes,
+            alg="HS128",
         )
 
     with pytest.raises(TypeError, match="algorithm must be a string"):
@@ -300,8 +391,10 @@ def test_hmac_error_and_extra_paths(hmac_key_bytes: bytes) -> None:
 
 
 def test_rsa_error_and_extra_paths(
-    rsa_key: RSAKey, ecdsa_key: ECDSAKey
+    rsa_key: RSAKey,
+    ecdsa_key: ECDSAKey,
 ) -> None:
+    """Cover RSA load, verify, and generate error paths."""
     pem = rsa_key.private_pem()
     assert isinstance(RSAAlgorithm.load_key(pem), rsa.RSAPrivateKey)
 
@@ -313,7 +406,10 @@ def test_rsa_error_and_extra_paths(
 
     with pytest.raises(ValueError, match="Unsupported RSA algorithm"):
         RSAAlgorithm.verify(
-            data=b"x", signature=b"y", key={"n": "AQ", "e": "AQ"}, alg="RS128"
+            data=b"x",
+            signature=b"y",
+            key={"n": "AQ", "e": "AQ"},
+            alg="RS128",
         )
 
     with pytest.raises(TypeError, match="Expected an RSAPublicKey"):
@@ -341,7 +437,10 @@ def test_rsa_error_and_extra_paths(
     data = b"payload"
     sig = RSAAlgorithm.sign(data=data, key=ps_key.key, alg="PS256")
     assert RSAAlgorithm.verify(
-        data=data, signature=sig, key=ps_key.public_der(), alg="PS256"
+        data=data,
+        signature=sig,
+        key=ps_key.public_der(),
+        alg="PS256",
     )
 
     with pytest.raises(TypeError, match="algorithm must be a string"):
@@ -370,11 +469,13 @@ def test_rsa_error_and_extra_paths(
 
 
 def test_get_algorithm_unsupported() -> None:
+    """Reject unsupported algorithm names."""
     with pytest.raises(ValueError, match="Unsupported algorithm"):
         get_algorithm("none")
 
 
 def test_config_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise JWTConfig construction helpers."""
     monkeypatch.setenv(
         "JWT_CONFIG",
         json.dumps({"jwks_url": "https://example.com/jwks.json"}),
@@ -384,12 +485,12 @@ def test_config_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     assert hash(cfg)
 
     cfg2 = config.JWTConfig.init_by_json(
-        {"key": {"kty": "oct", "k": "YQ", "alg": "HS256"}}
+        {"key": {"kty": "oct", "k": "YQ", "alg": "HS256"}},
     )
     assert cfg2.jwk is not None
 
     cfg3 = config.JWTConfig.init_by_json(
-        json.dumps({"jwks_url": "https://example.com/jwks.json"})
+        json.dumps({"jwks_url": "https://example.com/jwks.json"}),
     )
     assert cfg3.jwks_url is not None
 
@@ -417,6 +518,7 @@ def test_config_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_algorithm_kty_and_token_type() -> None:
+    """Check Algorithm kty and TokenType values."""
     assert enums.Algorithm.HS256.kty == "oct"
     assert enums.Algorithm.RS256.kty == "RSA"
     assert enums.Algorithm.ES256.kty == "EC"
@@ -425,6 +527,7 @@ def test_algorithm_kty_and_token_type() -> None:
 
 
 def test_exception_message_branches() -> None:
+    """Cover JWT exception message formatting."""
     assert "maximum age" in str(exceptions.JWTMaximumAgeError())
     assert "signature is invalid" in str(exceptions.JWTInvalidSignatureError())
     expected = [
@@ -448,8 +551,11 @@ def test_exception_message_branches() -> None:
 
 
 def test_schemas_extra_paths(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Cover JWT schema properties and verify failures."""
     token = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -480,8 +586,10 @@ def test_schemas_extra_paths(
 
 
 def test_schemas_temporally_valid_raise(
-    test_header: dict, test_key: AbstractKey
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Raise when temporal validity check fails."""
     payload = {
         "sub": "user1",
         "exp": int(time.time()) - 100,
@@ -501,6 +609,7 @@ def test_schemas_temporally_valid_raise(
 
 
 def test_sign_errors_and_str_input(test_key: AbstractKey) -> None:
+    """Cover sign_jwt_parts errors and string input."""
     with pytest.raises(ValueError, match="must be provided"):
         sign.sign_jwt_parts(key=test_key, alg=test_key.algorithm)
 
@@ -512,19 +621,23 @@ def test_sign_errors_and_str_input(test_key: AbstractKey) -> None:
     signature = sign.sign_jwt_parts(
         key=test_key,
         alg=test_key.algorithm,
-        signing_input=signing_input,
+        parts=sign.SignInput(signing_input=signing_input),
     )
     assert isinstance(signature, bytes)
 
 
 def test_utils_bytes_and_str_encode() -> None:
+    """Encode and decode base64url bytes and strings."""
     assert utils.b64url_decode(b"YQ") == b"a"
     assert utils.b64url_encode("a") == "YQ"
 
 
 def test_verify_signature_variants_and_jwt_paths(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Cover verify_signature and verify_jwt edge paths."""
     token = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -559,12 +672,14 @@ def test_verify_signature_variants_and_jwt_paths(
     with pytest.raises(exceptions.JWKNotFoundError):
         verify.verify_jwt(token=token)
 
-    with patch("src.usso_jwt.verify.fetch_jwk", return_value=test_key.jwk()):
+    with patch("usso_jwt.verify.fetch_jwk", return_value=test_key.jwk()):
         assert verify.verify_jwt(
             token=token,
-            jwks_url="https://example.com/jwks.json",
-            kid="kid",
-            maximum_age=10_000,
+            options=verify.VerifyOptions(
+                jwks_url="https://example.com/jwks.json",
+                kid="kid",
+                maximum_age=10_000,
+            ),
         )
 
     old_payload = dict(test_valid_payload)
@@ -576,17 +691,24 @@ def test_verify_signature_variants_and_jwt_paths(
         alg=test_key.algorithm,
     )
     with pytest.raises(exceptions.JWTMaximumAgeError):
-        verify.verify_jwt(token=old_token, jwk=test_key.jwk(), maximum_age=60)
+        verify.verify_jwt(
+            token=old_token,
+            options=verify.VerifyOptions(jwk=test_key.jwk(), maximum_age=60),
+        )
 
 
 def test_config_key_bytes(hmac_key_bytes: bytes) -> None:
+    """Accept raw bytes as JWTConfig key."""
     cfg = config.JWTConfig(key=hmac_key_bytes)
     assert isinstance(cfg.key, dict)
 
 
 def test_unverified_jwt_hash_and_payload(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Hash UnverifiedJWT and read unverified payload."""
     token = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -595,12 +717,17 @@ def test_unverified_jwt_hash_and_payload(
     )
     unverified = schemas.UnverifiedJWT(token=token)
     assert hash(unverified) == hash(token)
-    assert unverified.unverified_payload["sub"] == test_valid_payload["sub"]
+    payload = unverified.unverified_payload
+    assert isinstance(payload, dict)
+    assert payload["sub"] == test_valid_payload["sub"]
 
 
 def test_jwt_header_payload_when_verify_returns_false(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Raise when verify returns False for header/payload."""
     token = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -619,8 +746,11 @@ def test_jwt_header_payload_when_verify_returns_false(
 
 
 def test_verify_jwt_raises_when_signature_helper_returns_false(
-    test_valid_payload: dict, test_header: dict, test_key: AbstractKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
 ) -> None:
+    """Raise when verify_signature helper returns False."""
     token = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
@@ -628,18 +758,23 @@ def test_verify_jwt_raises_when_signature_helper_returns_false(
         alg=test_key.algorithm,
     )
     with (
-        patch("src.usso_jwt.verify.verify_signature", return_value=False),
+        patch("usso_jwt.verify.verify_signature", return_value=False),
         pytest.raises(exceptions.JWTInvalidSignatureError),
     ):
-        verify.verify_jwt(token=token, jwk=test_key.jwk())
+        verify.verify_jwt(
+            token=token,
+            options=verify.VerifyOptions(jwk=test_key.jwk()),
+        )
 
 
 def test_eddsa_public_key_method(eddsa_key: EdDSAKey) -> None:
+    """Return Ed25519 public key object."""
     public = eddsa_key.public_key()
     assert isinstance(public, ed25519.Ed25519PublicKey)
 
 
 def test_utils_jwk_helpers(eddsa_key: EdDSAKey) -> None:
+    """Exercise JWK field helper utilities."""
     jwk = eddsa_key.jwk()
     assert utils.as_jwk_dict(jwk)["kty"] == "OKP"
     with pytest.raises(TypeError, match="Expected a JWK dict"):
@@ -661,6 +796,7 @@ def test_utils_jwk_helpers(eddsa_key: EdDSAKey) -> None:
 
 
 def test_eddsa_load_jwk_rejects_non_str_alg(eddsa_key: EdDSAKey) -> None:
+    """Reject non-string alg when loading EdDSA JWK."""
     public_x = eddsa_key.key.public_key().public_bytes_raw()
     private_d = eddsa_key.key.private_bytes_raw()
     jwk: dict[str, object] = {

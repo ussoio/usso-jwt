@@ -1,9 +1,12 @@
+"""JWT configuration models and validation."""
+
 import json
 import os
 from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from .algorithms.base import convert_key_to_jwk
 from .enums import Algorithm
 
 
@@ -40,6 +43,7 @@ class JWTConfig(BaseModel):
     )
 
     def __init__(self, **data: object) -> None:
+        """Build config from kwargs or ``JWT_CONFIG`` env JSON."""
         if os.getenv("JWT_CONFIG") and not data:
             data = json.loads(os.getenv("JWT_CONFIG", "{}"))
 
@@ -47,28 +51,61 @@ class JWTConfig(BaseModel):
 
     @classmethod
     def init_by_json(cls, json_data: object) -> "JWTConfig":
+        """Create a config from a JSON string or mapping.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         parsed: object = json_data
         if isinstance(parsed, str):
             parsed = json.loads(parsed)
         if not isinstance(parsed, dict):
-            raise TypeError("json_data must be a str or dict")
+            msg = "json_data must be a str or dict"
+            raise TypeError(msg)
         payload = {str(key): value for key, value in parsed.items()}
         return cls(**payload)
 
     def __hash__(self) -> int:
+        """Hash config from its JSON serialization.
+
+        Returns:
+            The function result.
+
+        """
         return hash(self.model_dump_json())
 
     @model_validator(mode="after")
     def validate_config(self) -> "JWTConfig":
+        """Ensure either ``jwks_url`` or ``key`` is set.
+
+        Returns:
+            The function result.
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
+        """
         if not self.jwks_url and not self.key:
-            raise ValueError("Either jwks_url or key must be provided")
+            msg = "Either jwks_url or key must be provided"
+            raise ValueError(msg)
         return self
 
     @field_validator("key", mode="before")
     @classmethod
     def validate_key(cls, v: object) -> dict | None:
-        from .algorithms.base import convert_key_to_jwk
+        """Normalize key input into a JWK dict.
 
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         if v is None:
             return None
         if isinstance(v, str):
@@ -77,13 +114,23 @@ class JWTConfig(BaseModel):
             return convert_key_to_jwk(v)
         if isinstance(v, dict):
             return v
-        raise TypeError("key must be str, bytes, dict, or None")
+        msg = "key must be str, bytes, dict, or None"
+        raise TypeError(msg)
 
     @property
     def jwk(self) -> dict | None:
-        """Return the configured key as a JWK dict when present."""
+        """Configured signing/verification key as a JWK dict.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         if self.key is None:
             return None
         if isinstance(self.key, dict):
             return self.key
-        raise TypeError("JWTConfig.key was not normalized to a JWK dict")
+        msg = "JWTConfig.key was not normalized to a JWK dict"
+        raise TypeError(msg)

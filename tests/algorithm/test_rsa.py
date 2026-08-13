@@ -4,7 +4,8 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from src.usso_jwt.algorithms import RSAAlgorithm, RSAKey
+from usso_jwt import schemas, sign
+from usso_jwt.algorithms import RSAAlgorithm, RSAKey
 
 
 def test_rsa_load_key_from_jwk(rsa_jwk: dict[str, object]) -> None:
@@ -34,13 +35,19 @@ def test_rsa_sign_verify(rsa_jwk: dict[str, object]) -> None:
     signature = RSAAlgorithm.sign(data=data, key=rsa_jwk, alg="RS256")
     assert isinstance(signature, bytes)
     assert RSAAlgorithm.verify(
-        data=data, signature=signature, key=rsa_jwk, alg="RS256"
+        data=data,
+        signature=signature,
+        key=rsa_jwk,
+        alg="RS256",
     )
 
     # Test invalid signature
     invalid_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
     assert not RSAAlgorithm.verify(
-        data=data, signature=invalid_signature, key=rsa_jwk, alg="RS256"
+        data=data,
+        signature=invalid_signature,
+        key=rsa_jwk,
+        alg="RS256",
     )
 
 
@@ -58,7 +65,10 @@ def test_rsa_all_algorithms(rsa_jwk: dict[str, object]) -> None:
         rsa_jwk["alg"] = alg
         signature = RSAAlgorithm.sign(data=signing_input, key=rsa_jwk, alg=alg)
         assert RSAAlgorithm.verify(
-            data=signing_input, signature=signature, key=rsa_jwk, alg=alg
+            data=signing_input,
+            signature=signature,
+            key=rsa_jwk,
+            alg=alg,
         )
 
 
@@ -90,7 +100,7 @@ def test_rsa_key_load_pem(rsa_private_key: rsa.RSAPrivateKey) -> None:
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = RSAKey.load_pem(pem, algorithm="RS256", password=b"password")
@@ -107,7 +117,7 @@ def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.BestAvailableEncryption(
-            b"password"
+            b"password",
         ),
     )
     key = RSAKey.load_der(der, algorithm="RS256", password=b"password")
@@ -118,7 +128,7 @@ def test_rsa_key_load_der(rsa_private_key: rsa.RSAPrivateKey) -> None:
     assert key.jwk().get("d") is None
 
 
-def test_rsa_key_sign_verify(rsa_jwk: dict[str, object]) -> None:
+def test_rsa_key_sign_verify() -> None:
     """Test RSA key signing and verification."""
     key = RSAKey.generate(algorithm="RS256")
     signature = key.sign(data=b"test")
@@ -133,27 +143,37 @@ def test_rsa_key_type(rsa_jwk: dict[str, object]) -> None:
 
 @pytest.fixture
 def test_key() -> RSAKey:
+    """RSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return RSAKey.generate()
 
 
 @pytest.fixture
 def test_token(
-    test_valid_payload: dict, test_header: dict, test_key: RSAKey
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: RSAKey,
 ) -> str:
-    from src.usso_jwt import sign
+    """RSA-signed JWT string fixture.
 
-    jwt = sign.generate_jwt(
+    Returns:
+        The function result.
+
+    """
+    return sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,
         key=test_key.private_der(),
         alg=test_key.algorithm,
     )
-    return jwt
 
 
 def test_pem_key(test_token: str, test_key: RSAKey) -> None:
-    from src.usso_jwt import schemas
-
+    """Verify JWT using an RSA public PEM key."""
     jwt_obj = schemas.JWT(
         token=test_token,
         config=schemas.JWTConfig(key=test_key.public_pem()),

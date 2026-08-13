@@ -1,5 +1,8 @@
+"""Abstract JWT algorithm and key interfaces."""
+
 import hashlib
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import ClassVar
 
 from cryptography.hazmat.backends import default_backend
@@ -18,18 +21,44 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
 )
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from ..utils import b64url_encode, jwk_str_field
+from usso_jwt.utils import b64url_encode, jwk_str_field
 
-AsymmetricPublicKey = (
-    RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey
-)
+AsymmetricPublicKey = RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey
 AsymmetricPrivateKey = (
     RSAPrivateKey | EllipticCurvePrivateKey | Ed25519PrivateKey
 )
 
+CryptoKeyBuilder = Callable[
+    [PrivateKeyTypes, str | None],
+    "AbstractKey",
+]
+_CRYPTO_KEY_BUILDERS: list[tuple[type, CryptoKeyBuilder]] = []
+
+
+def register_crypto_key_builder(
+    key_type: type,
+    builder: CryptoKeyBuilder,
+) -> None:
+    """Register a cryptography private-key type to an AbstractKey builder.
+
+    Args:
+        key_type: Cryptography private key class to match with ``isinstance``.
+        builder: Callable that wraps the key into an ``AbstractKey``.
+
+    """
+    _CRYPTO_KEY_BUILDERS.append((key_type, builder))
+
 
 def convert_key_to_jwk(key: bytes) -> dict[str, object]:
-    """Convert PEM to dict."""
+    """Convert PEM to dict.
+
+    Returns:
+        The function result.
+
+    Raises:
+        TypeError: If the argument type is invalid.
+
+    """
     # Check if the key is not in PEM format (doesn't start with BEGIN)
     if not key.startswith(b"-----BEGIN"):
         return {
@@ -38,16 +67,17 @@ def convert_key_to_jwk(key: bytes) -> dict[str, object]:
         }
 
     public_key = serialization.load_pem_public_key(
-        key, backend=default_backend()
+        key,
+        backend=default_backend(),
     )
     if isinstance(public_key, RSAPublicKey):
         return {
             "kty": "RSA",
             "n": b64url_encode(
-                public_key.public_numbers().n.to_bytes(256, "big")
+                public_key.public_numbers().n.to_bytes(256, "big"),
             ),
             "e": b64url_encode(
-                public_key.public_numbers().e.to_bytes(256, "big")
+                public_key.public_numbers().e.to_bytes(256, "big"),
             ),
         }
     if isinstance(public_key, EllipticCurvePublicKey):
@@ -55,10 +85,10 @@ def convert_key_to_jwk(key: bytes) -> dict[str, object]:
             "kty": "EC",
             "crv": public_key.curve.name,
             "x": b64url_encode(
-                public_key.public_numbers().x.to_bytes(256, "big")
+                public_key.public_numbers().x.to_bytes(256, "big"),
             ),
             "y": b64url_encode(
-                public_key.public_numbers().y.to_bytes(256, "big")
+                public_key.public_numbers().y.to_bytes(256, "big"),
             ),
         }
     if isinstance(public_key, Ed25519PublicKey):
@@ -67,10 +97,17 @@ def convert_key_to_jwk(key: bytes) -> dict[str, object]:
             "crv": "Ed25519",
             "x": b64url_encode(public_key.public_bytes_raw()),
         }
-    raise TypeError("Unsupported algorithm")
+    msg = "Unsupported algorithm"
+    raise TypeError(msg)
 
 
 def convert_jwk_to_pem(key: dict[str, object]) -> bytes:
+    """Convert a JWK dict to a public PEM encoding.
+
+    Returns:
+        The function result.
+
+    """
     abstract_key = AbstractKey.load_jwk(key)
     return abstract_key.public_pem()
 
@@ -133,41 +170,76 @@ class AbstractKey(ABC):
 
     @classmethod
     def generate_algorithm(cls, alg: str, **kwargs: object) -> "AbstractKey":
-        """Generate a random key for the given algorithm."""
+        """Generate a random key for the given algorithm.
+
+        Returns:
+            The function result.
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
+        """
         for child in cls.__subclasses__():
             if alg in child.SUPPORTED_ALGORITHMS:
                 return child.generate(**kwargs)
 
-        raise ValueError(f"Unsupported algorithm: {alg}")
+        msg = f"Unsupported algorithm: {alg}"
+        raise ValueError(msg)
 
     @classmethod
     def load_jwk(cls, key: dict[str, object]) -> "AbstractKey":
-        """Load a key from JWK dict."""
+        """Load a key from JWK dict.
+
+        Returns:
+            The function result.
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
+        """
         if "alg" not in key:
-            raise ValueError("Missing algorithm in JWK")
+            msg = "Missing algorithm in JWK"
+            raise ValueError(msg)
         alg = jwk_str_field(key, "alg")
         for child in cls.__subclasses__():
             if alg in child.SUPPORTED_ALGORITHMS:
                 return child.load_jwk(key)
 
-        raise ValueError(f"Unsupported algorithm: {alg}")
+        msg = f"Unsupported algorithm: {alg}"
+        raise ValueError(msg)
 
     @staticmethod
     def load_cryptography_pem(
-        key: bytes, password: bytes | None = None
+        key: bytes,
+        password: bytes | None = None,
     ) -> PrivateKeyTypes:
-        """Load a cryptography private key from PEM bytes."""
+        """Load a cryptography private key from PEM bytes.
+
+        Returns:
+            The function result.
+
+        """
         return serialization.load_pem_private_key(
-            key, password=password, backend=default_backend()
+            key,
+            password=password,
+            backend=default_backend(),
         )
 
     @staticmethod
     def load_cryptography_der(
-        key: bytes, password: bytes | None = None
+        key: bytes,
+        password: bytes | None = None,
     ) -> PrivateKeyTypes:
-        """Load a cryptography private key from DER bytes."""
+        """Load a cryptography private key from DER bytes.
+
+        Returns:
+            The function result.
+
+        """
         return serialization.load_der_private_key(
-            key, password=password, backend=default_backend()
+            key,
+            password=password,
+            backend=default_backend(),
         )
 
     @classmethod
@@ -176,19 +248,20 @@ class AbstractKey(ABC):
         loaded: PrivateKeyTypes,
         algorithm: str | None = None,
     ) -> "AbstractKey":
-        """Wrap a cryptography private key in the matching AbstractKey."""
-        # Local imports avoid circular dependencies at module load time.
-        from .ecdsa import ECDSAKey
-        from .eddsa import EdDSAKey
-        from .rsa import RSAKey
+        """Wrap a cryptography private key in the matching AbstractKey.
 
-        if isinstance(loaded, RSAPrivateKey):
-            return RSAKey(key=loaded, algorithm=algorithm or "RS256")
-        if isinstance(loaded, EllipticCurvePrivateKey):
-            return ECDSAKey(key=loaded, algorithm=algorithm or "ES256")
-        if isinstance(loaded, Ed25519PrivateKey):
-            return EdDSAKey(key=loaded, algorithm=algorithm or "EdDSA")
-        raise TypeError(f"Unsupported private key type: {type(loaded)}")
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
+        for key_type, builder in _CRYPTO_KEY_BUILDERS:
+            if isinstance(loaded, key_type):
+                return builder(loaded, algorithm)
+        msg = f"Unsupported private key type: {type(loaded)}"
+        raise TypeError(msg)
 
     @classmethod
     def load_pem(
@@ -197,7 +270,12 @@ class AbstractKey(ABC):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "AbstractKey":
-        """Load a key from PEM."""
+        """Load a key from PEM.
+
+        Returns:
+            The function result.
+
+        """
         del kwargs
         loaded = cls.load_cryptography_pem(key, password)
         return cls.from_cryptography_key(loaded)
@@ -209,22 +287,38 @@ class AbstractKey(ABC):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "AbstractKey":
-        """Load a key from DER."""
+        """Load a key from DER.
+
+        Returns:
+            The function result.
+
+        """
         del kwargs
         loaded = cls.load_cryptography_der(key, password)
         return cls.from_cryptography_key(loaded)
 
     @classmethod
     def load(
-        cls, key: object, password: bytes | None = None
+        cls,
+        key: object,
+        password: bytes | None = None,
     ) -> "AbstractKey":
-        """Load a key from JWK dict or PEM."""
+        """Load a key from JWK dict or PEM.
+
+        Returns:
+            The function result.
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
+        """
         if isinstance(key, dict):
             return cls.load_jwk({str(k): v for k, v in key.items()})
         if isinstance(key, bytes):
             return cls.load_der(key, password)
 
-        raise ValueError("Invalid key data.")
+        msg = "Invalid key data."
+        raise ValueError(msg)
 
     @abstractmethod
     def public_key(self) -> bytes | AsymmetricPublicKey:
@@ -235,7 +329,15 @@ class AbstractKey(ABC):
         """Get the JWK for the key."""
 
     def private_pem(self, password: bytes | None = None) -> bytes:
-        """Get the private PEM for the key."""
+        """Get the private PEM for the key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         private_key = self.key
         if isinstance(
             private_key,
@@ -250,10 +352,19 @@ class AbstractKey(ABC):
                     else serialization.BestAvailableEncryption(password)
                 ),
             )
-        raise TypeError("Octet keys do not support PEM private encoding")
+        msg = "Octet keys do not support PEM private encoding"
+        raise TypeError(msg)
 
     def private_der(self, password: bytes | None = None) -> bytes:
-        """Get the private DER for the key."""
+        """Get the private DER for the key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         private_key = self.key
         if isinstance(
             private_key,
@@ -268,10 +379,19 @@ class AbstractKey(ABC):
                     else serialization.BestAvailableEncryption(password)
                 ),
             )
-        raise TypeError("Octet keys do not support DER private encoding")
+        msg = "Octet keys do not support DER private encoding"
+        raise TypeError(msg)
 
     def public_pem(self) -> bytes:
-        """Get the public PEM for the key."""
+        """Get the public PEM for the key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         private_key = self.key
         if isinstance(
             private_key,
@@ -281,10 +401,19 @@ class AbstractKey(ABC):
                 serialization.Encoding.PEM,
                 serialization.PublicFormat.SubjectPublicKeyInfo,
             )
-        raise TypeError("Octet keys do not support PEM public encoding")
+        msg = "Octet keys do not support PEM public encoding"
+        raise TypeError(msg)
 
     def public_der(self) -> bytes:
-        """Get the public DER for the key."""
+        """Get the public DER for the key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         private_key = self.key
         if isinstance(
             private_key,
@@ -294,14 +423,20 @@ class AbstractKey(ABC):
                 serialization.Encoding.DER,
                 serialization.PublicFormat.SubjectPublicKeyInfo,
             )
-        raise TypeError("Octet keys do not support DER public encoding")
+        msg = "Octet keys do not support DER public encoding"
+        raise TypeError(msg)
 
     @property
     @abstractmethod
     def type(self) -> str:
-        """Get the type of the key."""
+        """Key type identifier string."""
 
     @property
     def kid(self) -> str:
-        """Get the key ID for the key."""
+        """Key ID derived from the public key digest.
+
+        Returns:
+            The function result.
+
+        """
         return hashlib.sha256(self.public_der()).hexdigest()

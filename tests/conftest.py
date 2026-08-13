@@ -4,17 +4,28 @@ import time
 
 import pytest
 
-from src.usso_jwt.algorithms import AbstractKey, EdDSAKey
+from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 
 @pytest.fixture
 def test_key() -> AbstractKey:
+    """EdDSA test key fixture.
+
+    Returns:
+        The function result.
+
+    """
     return EdDSAKey.generate()
 
 
 @pytest.fixture
 def test_valid_payload() -> dict[str, object]:
-    """Create a test JWT payload."""
+    """Create a test JWT payload.
+
+    Returns:
+        The function result.
+
+    """
     now = int(time.time())
     return {
         "token_type": "access",
@@ -30,7 +41,12 @@ def test_valid_payload() -> dict[str, object]:
 
 @pytest.fixture
 def test_expired_payload() -> dict[str, object]:
-    """Create a test JWT payload with an expired timestamp."""
+    """Create a test JWT payload with an expired timestamp.
+
+    Returns:
+        The function result.
+
+    """
     now = int(time.time())
     return {
         "sub": "1234567890",
@@ -42,7 +58,12 @@ def test_expired_payload() -> dict[str, object]:
 
 @pytest.fixture
 def test_future_payload() -> dict[str, object]:
-    """Create a test JWT payload with an expired timestamp."""
+    """Create a test JWT payload with an expired timestamp.
+
+    Returns:
+        The function result.
+
+    """
     now = int(time.time())
     return {
         "sub": "1234567890",
@@ -54,7 +75,12 @@ def test_future_payload() -> dict[str, object]:
 
 @pytest.fixture
 def test_future_nbf_payload() -> dict[str, object]:
-    """Create a test JWT payload with an expired timestamp."""
+    """Create a test JWT payload with an expired timestamp.
+
+    Returns:
+        The function result.
+
+    """
     now = int(time.time())
     return {
         "sub": "1234567890",
@@ -67,7 +93,12 @@ def test_future_nbf_payload() -> dict[str, object]:
 
 @pytest.fixture
 def test_header(test_key: AbstractKey) -> dict[str, object]:
-    """Create a test JWT header."""
+    """Create a test JWT header.
+
+    Returns:
+        The function result.
+
+    """
     return {
         "alg": test_key.algorithm,
         "typ": "JWT",

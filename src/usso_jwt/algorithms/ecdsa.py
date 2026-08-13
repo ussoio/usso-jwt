@@ -1,16 +1,20 @@
+"""ECDSA (ES256/ES384/ES512) JWT algorithm and key types."""
+
 from typing import ClassVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from ..utils import (
+from usso_jwt.utils import (
     as_jwk_dict,
     b64url_encode,
     jwk_int_field,
     jwk_str_field,
 )
-from .base import AbstractKey, KeyAlgorithm
+
+from .base import AbstractKey, KeyAlgorithm, register_crypto_key_builder
 
 
 class ECDSAAlgorithm(KeyAlgorithm):
@@ -34,8 +38,7 @@ class ECDSAAlgorithm(KeyAlgorithm):
         key: object,
         password: bytes | None = None,
     ) -> ec.EllipticCurvePrivateKey:
-        """
-        Load ECDSA private key from JWK dict or PEM bytes.
+        """Load ECDSA private key from JWK dict or PEM bytes.
 
         Args:
             key: Either a JWK dict or PEM-encoded private key bytes
@@ -43,6 +46,10 @@ class ECDSAAlgorithm(KeyAlgorithm):
 
         Returns:
             ECDSA private key object
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
         """
         if isinstance(key, ec.EllipticCurvePrivateKey):
             return key
@@ -50,26 +57,41 @@ class ECDSAAlgorithm(KeyAlgorithm):
             return cls.load_jwk(as_jwk_dict(key))
         if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
             loaded = serialization.load_pem_private_key(
-                key, password=password, backend=default_backend()
+                key,
+                password=password,
+                backend=default_backend(),
             )
         elif isinstance(key, bytes):
             loaded = serialization.load_der_private_key(
-                key, password=password, backend=default_backend()
+                key,
+                password=password,
+                backend=default_backend(),
             )
         else:
-            raise TypeError(f"Unsupported ECDSA key type: {type(key)}")
+            msg = f"Unsupported ECDSA key type: {type(key)}"
+            raise TypeError(msg)
 
         if not isinstance(loaded, ec.EllipticCurvePrivateKey):
-            raise TypeError("Expected an EllipticCurvePrivateKey")
+            msg = "Expected an EllipticCurvePrivateKey"
+            raise TypeError(msg)
         return loaded
 
     @classmethod
     def load_jwk(cls, key: dict[str, object]) -> ec.EllipticCurvePrivateKey:
-        """Load a key from JWK dict."""
+        """Load a key from JWK dict.
+
+        Returns:
+            The function result.
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
+        """
         jwk = as_jwk_dict(key)
         alg = jwk_str_field(jwk, "alg", "ES256")
         if alg not in cls._CURVES:
-            raise ValueError(f"Unsupported ECDSA algorithm: {alg}")
+            msg = f"Unsupported ECDSA algorithm: {alg}"
+            raise ValueError(msg)
         return ec.EllipticCurvePrivateNumbers(
             jwk_int_field(jwk, "d"),
             ec.EllipticCurvePublicNumbers(
@@ -88,8 +110,7 @@ class ECDSAAlgorithm(KeyAlgorithm):
         alg: str = "ES256",
         password: bytes | None = None,
     ) -> bytes:
-        """
-        Sign using ECDSA algorithms.
+        """Sign using ECDSA algorithms.
 
         Args:
             data: The data to sign
@@ -99,9 +120,14 @@ class ECDSAAlgorithm(KeyAlgorithm):
 
         Returns:
             The signature
+
+        Raises:
+            ValueError: If the value is invalid or unsupported.
+
         """
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            raise ValueError(f"Unsupported ECDSA algorithm: {alg}")
+            msg = f"Unsupported ECDSA algorithm: {alg}"
+            raise ValueError(msg)
 
         privkey = cls.load_key(key, password)
 
@@ -121,8 +147,7 @@ class ECDSAAlgorithm(KeyAlgorithm):
         alg: str = "ES256",
         **kwargs: object,
     ) -> bool:
-        """
-        Verify ECDSA signature.
+        """Verify ECDSA signature.
 
         Args:
             data: The data that was signed
@@ -133,10 +158,16 @@ class ECDSAAlgorithm(KeyAlgorithm):
 
         Returns:
             True if signature is valid, False otherwise
+
+        Raises:
+            TypeError: If the argument type is invalid.
+            ValueError: If the value is invalid or unsupported.
+
         """
         del kwargs
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            raise ValueError(f"Unsupported ECDSA algorithm: {alg}")
+            msg = f"Unsupported ECDSA algorithm: {alg}"
+            raise ValueError(msg)
 
         if isinstance(key, dict):
             jwk = as_jwk_dict(key)
@@ -144,19 +175,22 @@ class ECDSAAlgorithm(KeyAlgorithm):
             x = jwk_int_field(jwk, "x")
             y = jwk_int_field(jwk, "y")
             pubkey = ec.EllipticCurvePublicNumbers(x, y, curve).public_key(
-                default_backend()
+                default_backend(),
             )
         elif isinstance(key, bytes):
             loaded = serialization.load_der_public_key(
-                key, backend=default_backend()
+                key,
+                backend=default_backend(),
             )
             if not isinstance(loaded, ec.EllipticCurvePublicKey):
-                raise TypeError("Expected an EllipticCurvePublicKey")
+                msg = "Expected an EllipticCurvePublicKey"
+                raise TypeError(msg)
             pubkey = loaded
         elif isinstance(key, ec.EllipticCurvePublicKey):
             pubkey = key
         else:
-            raise TypeError(f"Unsupported ECDSA verify key type: {type(key)}")
+            msg = f"Unsupported ECDSA verify key type: {type(key)}"
+            raise TypeError(msg)
 
         try:
             # Reconstruct signature from r and s components
@@ -182,20 +216,36 @@ class ECDSAKey(AbstractKey):
         key: ec.EllipticCurvePrivateKey,
         algorithm: str = "ES256",
     ) -> None:
+        """Initialize an ECDSA key wrapper."""
         self._key = key
         self.algorithm = algorithm
 
     @property
     def key(self) -> ec.EllipticCurvePrivateKey:
-        """Underlying ECDSA private key."""
+        """Underlying ECDSA private key.
+
+        Returns:
+            The function result.
+
+        """
         return self._key
 
     @classmethod
     def generate(cls, **kwargs: object) -> "ECDSAKey":
-        """Generate a new ECDSA key."""
+        """Generate a new ECDSA key.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+            ValueError: If the value is invalid or unsupported.
+
+        """
         algorithm = kwargs.get("algorithm", "ES256")
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         if algorithm == "ES256":
             curve: ec.EllipticCurve = ec.SECP256R1()
         elif algorithm == "ES384":
@@ -203,7 +253,8 @@ class ECDSAKey(AbstractKey):
         elif algorithm == "ES512":
             curve = ec.SECP521R1()
         else:
-            raise ValueError(f"Unsupported ECDSA algorithm: {algorithm}")
+            msg = f"Unsupported ECDSA algorithm: {algorithm}"
+            raise ValueError(msg)
 
         return ECDSAKey(
             key=ec.generate_private_key(curve, default_backend()),
@@ -212,7 +263,12 @@ class ECDSAKey(AbstractKey):
 
     @classmethod
     def load_jwk(cls, key: dict[str, object]) -> "ECDSAKey":
-        """Load a key from JWK dict."""
+        """Load a key from JWK dict.
+
+        Returns:
+            The function result.
+
+        """
         jwk = as_jwk_dict(key)
         algorithm = jwk_str_field(jwk, "alg", "ES256")
         return ECDSAKey(
@@ -227,13 +283,23 @@ class ECDSAKey(AbstractKey):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "ECDSAKey":
-        """Load a key from PEM."""
+        """Load a key from PEM.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         algorithm = kwargs.get("algorithm", "ES256")
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         loaded = cls.load_cryptography_pem(key, password)
         if not isinstance(loaded, ec.EllipticCurvePrivateKey):
-            raise TypeError("Expected an EllipticCurvePrivateKey")
+            msg = "Expected an EllipticCurvePrivateKey"
+            raise TypeError(msg)
         return ECDSAKey(key=loaded, algorithm=algorithm)
 
     @classmethod
@@ -243,17 +309,32 @@ class ECDSAKey(AbstractKey):
         password: bytes | None = None,
         **kwargs: object,
     ) -> "ECDSAKey":
-        """Load a key from DER."""
+        """Load a key from DER.
+
+        Returns:
+            The function result.
+
+        Raises:
+            TypeError: If the argument type is invalid.
+
+        """
         algorithm = kwargs.get("algorithm", "ES256")
         if not isinstance(algorithm, str):
-            raise TypeError("algorithm must be a string")
+            msg = "algorithm must be a string"
+            raise TypeError(msg)
         loaded = cls.load_cryptography_der(key, password)
         if not isinstance(loaded, ec.EllipticCurvePrivateKey):
-            raise TypeError("Expected an EllipticCurvePrivateKey")
+            msg = "Expected an EllipticCurvePrivateKey"
+            raise TypeError(msg)
         return ECDSAKey(key=loaded, algorithm=algorithm)
 
     def jwk(self, kid: str | None = None) -> dict:
-        """Get the JWK for the key."""
+        """Get the JWK for the key.
+
+        Returns:
+            The function result.
+
+        """
         public_key = self.key.public_key()
         curve_name_to_jwk_crv = {
             "secp256r1": "P-256",
@@ -266,36 +347,80 @@ class ECDSAKey(AbstractKey):
             "crv": curve_name_to_jwk_crv[public_key.curve.name],
             "x": b64url_encode(
                 public_key.public_numbers().x.to_bytes(
-                    public_key.curve.key_size // 8, "big"
-                )
+                    public_key.curve.key_size // 8,
+                    "big",
+                ),
             ),
             "y": b64url_encode(
                 public_key.public_numbers().y.to_bytes(
-                    public_key.curve.key_size // 8, "big"
-                )
+                    public_key.curve.key_size // 8,
+                    "big",
+                ),
             ),
             "use": "sig",
             "kid": kid or self.kid,
         }
 
     def public_key(self) -> ec.EllipticCurvePublicKey:
-        """Get the public key."""
+        """Get the public key.
+
+        Returns:
+            The function result.
+
+        """
         return self.key.public_key()
 
     @property
     def type(self) -> str:
-        """Get the type of the key."""
+        """Key type identifier for ECDSA keys.
+
+        Returns:
+            The function result.
+
+        """
         return "ECDSA"
 
     def sign(self, data: bytes) -> bytes:
-        """Sign data using the key."""
+        """Sign data using the key.
+
+        Returns:
+            The function result.
+
+        """
         return ECDSAAlgorithm.sign(data=data, key=self.key, alg=self.algorithm)
 
     def verify(self, data: bytes, signature: bytes) -> bool:
-        """Verify signature using the key."""
+        """Verify signature using the key.
+
+        Returns:
+            The function result.
+
+        """
         return ECDSAAlgorithm.verify(
             data=data,
             signature=signature,
             key=self.public_der(),
             alg=self.algorithm,
         )
+
+
+def _build_ecdsa_key(
+    loaded: PrivateKeyTypes,
+    algorithm: str | None,
+) -> ECDSAKey:
+    """Build an ECDSAKey from a cryptography private key.
+
+    Returns:
+        An ECDSAKey wrapping ``loaded``.
+
+    Raises:
+        TypeError: If ``loaded`` is not an elliptic-curve private key.
+
+    """
+    if not isinstance(loaded, ec.EllipticCurvePrivateKey):
+        msg = "Expected an EllipticCurvePrivateKey"
+        raise TypeError(msg)
+    return ECDSAKey(key=loaded, algorithm=algorithm or "ES256")
+
+
+register_crypto_key_builder(ec.EllipticCurvePrivateKey, _build_ecdsa_key)
