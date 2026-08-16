@@ -11,6 +11,7 @@ from usso_jwt.utils import (
     as_jwk_dict,
     b64url_decode,
     b64url_encode,
+    is_pem_key_material,
     jwk_b64_field,
 )
 
@@ -50,12 +51,8 @@ class EdDSAAlgorithm(KeyAlgorithm):
             return key
         if isinstance(key, dict):
             return cls.load_jwk(as_jwk_dict(key))
-        if isinstance(key, bytes) and key.startswith(b"-----BEGIN"):
-            loaded = serialization.load_pem_private_key(
-                key,
-                password=password,
-                backend=default_backend(),
-            )
+        if isinstance(key, (str, bytes)) and is_pem_key_material(key):
+            loaded = AbstractKey.load_cryptography_pem(key, password)
         elif isinstance(key, bytes):
             loaded = serialization.load_der_private_key(
                 key,

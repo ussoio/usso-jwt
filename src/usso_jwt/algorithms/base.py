@@ -21,7 +21,11 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
 )
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from usso_jwt.utils import b64url_encode, jwk_str_field
+from usso_jwt.utils import (
+    b64url_encode,
+    jwk_str_field,
+    normalize_pem_key_material,
+)
 
 AsymmetricPublicKey = RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey
 AsymmetricPrivateKey = (
@@ -210,17 +214,20 @@ class AbstractKey(ABC):
 
     @staticmethod
     def load_cryptography_pem(
-        key: bytes,
+        key: str | bytes,
         password: bytes | None = None,
     ) -> PrivateKeyTypes:
-        """Load a cryptography private key from PEM bytes.
+        """Load a cryptography private key from PEM text or bytes.
+
+        Normalizes literal escaped newlines (e.g. from env/vault) before
+        loading.
 
         Returns:
             The function result.
 
         """
         return serialization.load_pem_private_key(
-            key,
+            normalize_pem_key_material(key),
             password=password,
             backend=default_backend(),
         )
