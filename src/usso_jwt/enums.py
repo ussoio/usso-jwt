@@ -1,6 +1,7 @@
 """JWT algorithm and token-type enumerations."""
 
 from enum import StrEnum
+from typing import Self
 
 
 class Algorithm(StrEnum):
@@ -29,6 +30,19 @@ class Algorithm(StrEnum):
     # EdDSA with SHA-2
     EdDSA = "EDDSA"  # EdDSA with SHA-512
     Ed25519 = "ED25519"  # EdDSA with SHA-512
+
+    @classmethod
+    def _missing_(cls, value: object) -> Self | None:
+        """Map JOSE mixed-case names like ``get_algorithm``.
+
+        Returns:
+            Matching member, or ``None`` if the name is unknown.
+
+        """
+        if isinstance(value, str):
+            member = cls._value2member_map_.get(value.upper())
+            return member if isinstance(member, cls) else None
+        return None
 
     @property
     def kty(self) -> str:

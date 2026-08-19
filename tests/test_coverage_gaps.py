@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from pydantic import BaseModel, ValidationError
 
 from usso_jwt import (
     config,
@@ -524,6 +525,45 @@ def test_algorithm_kty_and_token_type() -> None:
     assert enums.Algorithm.ES256.kty == "EC"
     assert enums.Algorithm.EdDSA.kty == "OKP"
     assert enums.TokenType.REFRESH == "refresh"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Ed25519", enums.Algorithm.Ed25519),
+        ("ED25519", enums.Algorithm.Ed25519),
+        ("ed25519", enums.Algorithm.Ed25519),
+        ("EdDSA", enums.Algorithm.EdDSA),
+        ("EDDSA", enums.Algorithm.EdDSA),
+        ("eddsa", enums.Algorithm.EdDSA),
+        ("hs256", enums.Algorithm.HS256),
+    ],
+)
+def test_algorithm_accepts_jose_and_uppercase_names(
+    raw: str,
+    expected: enums.Algorithm,
+) -> None:
+    """Match get_algorithm case-folding for enum and Pydantic."""
+
+    class AlgModel(BaseModel):
+        alg: enums.Algorithm
+
+    assert enums.Algorithm(raw) is expected
+    assert AlgModel.model_validate({"alg": raw}).alg is expected
+
+
+def test_algorithm_rejects_unknown_and_non_string() -> None:
+    """Keep invalid algorithm names as ValueError / ValidationError."""
+    with pytest.raises(ValueError, match="Ed448"):
+        enums.Algorithm("Ed448")
+    with pytest.raises(ValueError, match="25519"):
+        enums.Algorithm(25519)  # type: ignore[arg-type]
+
+    class AlgModel(BaseModel):
+        alg: enums.Algorithm
+
+    with pytest.raises(ValidationError):
+        AlgModel.model_validate({"alg": "Ed448"})
 
 
 def test_exception_message_branches() -> None:
