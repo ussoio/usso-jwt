@@ -151,6 +151,7 @@ def test_from_cryptography_and_load_paths(
 
 def test_octet_key_encoding_errors() -> None:
     """Reject PEM/DER encoding for octet keys."""
+
     class OctetKey(AbstractKey):
         SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {"OCT"}
 

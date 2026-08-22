@@ -75,6 +75,7 @@ def test_payload_class(
     test_valid_payload: dict,
 ) -> None:
     """Parse payload into a Pydantic model."""
+
     class TestPayload(BaseModel):
         sub: str
         name: str
