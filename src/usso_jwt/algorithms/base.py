@@ -116,6 +116,20 @@ def convert_jwk_to_pem(key: dict[str, object]) -> bytes:
     return abstract_key.public_pem()
 
 
+def normalize_alg(alg: object) -> str:
+    """Return the canonical (upper-case) name of a JWT algorithm.
+
+    JOSE names like ``EdDSA``/``Ed25519`` and any other casing
+    (``ed25519``, ``rs256``) all map to the same upper-case name used for
+    lookups, so callers do not have to match an exact spelling.
+
+    Returns:
+        The upper-cased algorithm name.
+
+    """
+    return str(alg).strip().upper()
+
+
 class KeyAlgorithm(ABC):
     """Abstract base class for JWT algorithms."""
 
@@ -184,7 +198,7 @@ class AbstractKey(ABC):
 
         """
         for child in cls.__subclasses__():
-            if alg in child.SUPPORTED_ALGORITHMS:
+            if normalize_alg(alg) in child.SUPPORTED_ALGORITHMS:
                 return child.generate(**kwargs)
 
         msg = f"Unsupported algorithm: {alg}"
@@ -206,7 +220,7 @@ class AbstractKey(ABC):
             raise ValueError(msg)
         alg = jwk_str_field(key, "alg")
         for child in cls.__subclasses__():
-            if alg in child.SUPPORTED_ALGORITHMS:
+            if normalize_alg(alg) in child.SUPPORTED_ALGORITHMS:
                 return child.load_jwk(key)
 
         msg = f"Unsupported algorithm: {alg}"

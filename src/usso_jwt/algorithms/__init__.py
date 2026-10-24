@@ -5,6 +5,7 @@ from .base import (
     KeyAlgorithm,
     convert_jwk_to_pem,
     convert_key_to_jwk,
+    normalize_alg,
 )
 from .ecdsa import ECDSAAlgorithm, ECDSAKey
 from .eddsa import EdDSAAlgorithm, EdDSAKey
@@ -29,4 +30,5 @@ __all__ = [
     "convert_key_to_jwk",
     "from_cryptography_key",
     "get_algorithm",
+    "normalize_alg",
 ]
