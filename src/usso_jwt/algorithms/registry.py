@@ -1,6 +1,6 @@
 """Registry mapping JWT algorithm names to managers."""
 
-from .base import KeyAlgorithm
+from .base import KeyAlgorithm, normalize_alg
 from .ecdsa import ECDSAAlgorithm
 from .eddsa import EdDSAAlgorithm
 from .hmac import HMACAlgorithm
@@ -29,7 +29,7 @@ def get_algorithm(alg: str) -> type[KeyAlgorithm]:
 
     """
     for algo in _ALGORITHM_MANAGERS:
-        if alg.upper() in algo.SUPPORTED_ALGORITHMS:
+        if normalize_alg(alg) in algo.SUPPORTED_ALGORITHMS:
             return algo
 
     msg = f"Unsupported algorithm: {alg}"

@@ -15,7 +15,7 @@ from usso_jwt.utils import (
     jwk_str_field,
 )
 
-from .base import AbstractKey, KeyAlgorithm
+from .base import AbstractKey, KeyAlgorithm, normalize_alg
 
 HMAC_DEFAULT_KEY_SIZE = 32
 
@@ -81,8 +81,9 @@ class HMACAlgorithm(KeyAlgorithm):
             ValueError: If the value is invalid or unsupported.
 
         """
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported HMAC algorithm: {alg}"
+            msg = f"Unsupported HMAC algorithm: {requested}"
             raise ValueError(msg)
 
         key_bytes = cls.load_key(key, password)
@@ -120,8 +121,9 @@ class HMACAlgorithm(KeyAlgorithm):
             ValueError: If the value is invalid or unsupported.
 
         """
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported HMAC algorithm: {alg}"
+            msg = f"Unsupported HMAC algorithm: {requested}"
             raise ValueError(msg)
 
         password = kwargs.get("password")

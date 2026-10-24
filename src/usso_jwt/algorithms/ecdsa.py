@@ -15,7 +15,12 @@ from usso_jwt.utils import (
     jwk_str_field,
 )
 
-from .base import AbstractKey, KeyAlgorithm, register_crypto_key_builder
+from .base import (
+    AbstractKey,
+    KeyAlgorithm,
+    normalize_alg,
+    register_crypto_key_builder,
+)
 
 
 class ECDSAAlgorithm(KeyAlgorithm):
@@ -86,8 +91,9 @@ class ECDSAAlgorithm(KeyAlgorithm):
         """
         jwk = as_jwk_dict(key)
         alg = jwk_str_field(jwk, "alg", "ES256")
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls._CURVES:
-            msg = f"Unsupported ECDSA algorithm: {alg}"
+            msg = f"Unsupported ECDSA algorithm: {requested}"
             raise ValueError(msg)
         return ec.EllipticCurvePrivateNumbers(
             jwk_int_field(jwk, "d"),
@@ -122,8 +128,9 @@ class ECDSAAlgorithm(KeyAlgorithm):
             ValueError: If the value is invalid or unsupported.
 
         """
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported ECDSA algorithm: {alg}"
+            msg = f"Unsupported ECDSA algorithm: {requested}"
             raise ValueError(msg)
 
         privkey = cls.load_key(key, password)
@@ -162,8 +169,9 @@ class ECDSAAlgorithm(KeyAlgorithm):
 
         """
         del kwargs
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported ECDSA algorithm: {alg}"
+            msg = f"Unsupported ECDSA algorithm: {requested}"
             raise ValueError(msg)
 
         if isinstance(key, dict):

@@ -15,7 +15,12 @@ from usso_jwt.utils import (
     jwk_str_field,
 )
 
-from .base import AbstractKey, KeyAlgorithm, register_crypto_key_builder
+from .base import (
+    AbstractKey,
+    KeyAlgorithm,
+    normalize_alg,
+    register_crypto_key_builder,
+)
 
 
 class RSAAlgorithm(KeyAlgorithm):
@@ -126,8 +131,9 @@ class RSAAlgorithm(KeyAlgorithm):
             ValueError: If the value is invalid or unsupported.
 
         """
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported RSA algorithm: {alg}"
+            msg = f"Unsupported RSA algorithm: {requested}"
             raise ValueError(msg)
 
         privkey = cls.load_key(key, password)
@@ -173,8 +179,9 @@ class RSAAlgorithm(KeyAlgorithm):
 
         """
         del kwargs
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported RSA algorithm: {alg}"
+            msg = f"Unsupported RSA algorithm: {requested}"
             raise ValueError(msg)
 
         if isinstance(key, dict):

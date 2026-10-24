@@ -15,7 +15,12 @@ from usso_jwt.utils import (
     jwk_b64_field,
 )
 
-from .base import AbstractKey, KeyAlgorithm, register_crypto_key_builder
+from .base import (
+    AbstractKey,
+    KeyAlgorithm,
+    normalize_alg,
+    register_crypto_key_builder,
+)
 
 
 class EdDSAAlgorithm(KeyAlgorithm):
@@ -105,8 +110,9 @@ class EdDSAAlgorithm(KeyAlgorithm):
             ValueError: If the value is invalid or unsupported.
 
         """
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported EdDSA algorithm: {alg}"
+            msg = f"Unsupported EdDSA algorithm: {requested}"
             raise ValueError(msg)
 
         privkey = cls.load_key(key, password)
@@ -140,8 +146,9 @@ class EdDSAAlgorithm(KeyAlgorithm):
 
         """
         del kwargs
+        requested, alg = alg, normalize_alg(alg)
         if alg not in cls.SUPPORTED_ALGORITHMS:
-            msg = f"Unsupported EdDSA algorithm: {alg}"
+            msg = f"Unsupported EdDSA algorithm: {requested}"
             raise ValueError(msg)
 
         if isinstance(key, dict):
