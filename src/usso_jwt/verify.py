@@ -72,7 +72,7 @@ def fetch_jwk(*, jwks_url: str, kid: str) -> dict:
         JWKNotFoundError: If the JWK cannot be resolved.
 
     """
-    resp = httpx.get(jwks_url, proxy=os.getenv("PROXY"))
+    resp = httpx.get(jwks_url, proxy=os.getenv("PROXY") or None)
     resp.raise_for_status()
     jwks = resp.json()
     for key in jwks["keys"]:
